@@ -222,7 +222,7 @@ public class SurveyManagementController {
   @RequestMapping(
       method = RequestMethod.POST,
       path = "/survey/{surveyId}/question/{questionId}/answer/{answerId}")
-  public void updateQuestion(/* TODO */
+  public void updateAnswer(/* TODO */
       @PathVariable("surveyId")
       final Long surveyId,
       @PathVariable("questionId")
