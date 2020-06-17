@@ -198,7 +198,7 @@
 			</releases>
 		</repository>
 		<repository>
-			<id>com.github.OneTrackingFramework.commons-boot</id>
+			<id>com.github.OneTrackingFramework.survey-commons</id>
 			<name>GitHub OneTrackingFramework Apache Maven Packages</name>
 			<url>https://maven.pkg.github.com/OneTrackingFramework/survey-commons</url>
 		</repository>

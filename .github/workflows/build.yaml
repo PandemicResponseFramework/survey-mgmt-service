@@ -1,0 +1,26 @@
+name: Maven Package & Integration Tests
+
+on:
+  push:
+    branches: 
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+          server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+          settings-path: $SETTINGS_PATH # location for the settings.xml file
+      - name: Build package and perform integration tests
+        env:
+          GITHUB_USERNAME: x-access-token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SETTINGS_PATH: ${{ github.workspace }}/.github/workflows/settings.xml
+        run:
+          mvn integration-test -B -s $SETTINGS_PATH
