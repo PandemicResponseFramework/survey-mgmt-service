@@ -40,9 +40,9 @@ import one.tracking.framework.repo.SurveyRepository;
  */
 @Configuration
 @EnableScheduling
-public class SchedulerConfig implements SchedulingConfigurer {
+public class ReminderConfig implements SchedulingConfigurer {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SchedulerConfig.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ReminderConfig.class);
 
   @Autowired
   private ReminderComponent reminderComponent;

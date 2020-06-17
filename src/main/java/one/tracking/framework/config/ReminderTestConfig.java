@@ -33,10 +33,10 @@ import one.tracking.framework.repo.SurveyRepository;
  */
 @Configuration
 @EnableScheduling
-@Profile("dev")
-public class SchedulerTestConfig implements SchedulingConfigurer {
+@Profile("remindertest")
+public class ReminderTestConfig implements SchedulingConfigurer {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SchedulerTestConfig.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ReminderTestConfig.class);
 
   private static final int DELAY = 15;
 
