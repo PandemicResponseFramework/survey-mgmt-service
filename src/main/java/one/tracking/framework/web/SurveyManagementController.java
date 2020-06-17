@@ -192,14 +192,14 @@ public class SurveyManagementController {
 
   @RequestMapping(
       method = RequestMethod.GET,
-      path = "/survey/{surveyId}/question/{questionId}/answers")
+      path = "/survey/{surveyId}/question/{questionId}/answer")
   public void getAnswers(/* TODO */) {
     throw new UnsupportedOperationException();
   }
 
   @RequestMapping(
       method = RequestMethod.GET,
-      path = "/survey/{surveyId}/question/{questionId}/answers/{answerId}")
+      path = "/survey/{surveyId}/question/{questionId}/answer/{answerId}")
   public void getAnswer(/* TODO */
       @PathVariable("surveyId")
       final Long surveyId,
