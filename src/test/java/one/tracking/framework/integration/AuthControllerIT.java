@@ -65,7 +65,7 @@ public class AuthControllerIT {
   private static final String ENDPOINT_VERIFY = ENDPOINT_AUTH + "/verify";
 
   private static final String ENDPOINT_MANAGE = "/manage";
-  private static final String ENDPOINT_INVITE = ENDPOINT_MANAGE + "/invite";
+  private static final String ENDPOINT_INVITE = ENDPOINT_MANAGE + "/participant/invite";
 
   @MockBean
   private SendGridService sendGridService;

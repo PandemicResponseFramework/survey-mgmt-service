@@ -47,7 +47,7 @@ public class SurveyManagementController {
 
   @RequestMapping(
       method = RequestMethod.POST,
-      path = "/invite")
+      path = "/participant/invite")
   public void registerParticipant(
       @RequestBody
       @Valid
@@ -60,7 +60,7 @@ public class SurveyManagementController {
 
   @RequestMapping(
       method = RequestMethod.POST,
-      path = "/import",
+      path = "/participant/import",
       consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public Long importParticipants(
       @RequestParam("file")
