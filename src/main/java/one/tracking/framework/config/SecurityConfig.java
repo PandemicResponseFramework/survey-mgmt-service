@@ -115,8 +115,15 @@ public class SecurityConfig {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-      http.antMatcher("/manage/**").csrf().disable()
+      http.csrf().disable()
           .authorizeRequests()
+          .antMatchers(
+              "/v2/api-docs",
+              "/swagger*/**",
+              "/webjars/**",
+              "/h2-console/**",
+              "/v3/api-docs/**")
+          .permitAll()
           .anyRequest().hasAnyAuthority(SecurityConfig.this.roleAdmin)
           .and()
           .httpBasic()

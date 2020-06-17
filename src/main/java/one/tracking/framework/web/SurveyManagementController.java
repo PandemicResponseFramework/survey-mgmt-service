@@ -32,7 +32,9 @@ public class SurveyManagementController {
   @Autowired
   private AuthService authService;
 
-  @RequestMapping(path = "/test")
+  @RequestMapping(
+      method = RequestMethod.GET,
+      path = "/test")
   public String testAD(
       @ApiIgnore
       final Authentication authentication) {
