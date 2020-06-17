@@ -30,4 +30,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SETTINGS_PATH: ${{ github.workspace }}/.github/workflows/settings.xml
         run:
-          mvn integration-test -B -s $SETTINGS_PATH
+          mvn integration-test -U -B -s $SETTINGS_PATH
