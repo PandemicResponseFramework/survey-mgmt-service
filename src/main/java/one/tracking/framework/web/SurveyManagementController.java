@@ -73,7 +73,9 @@ public class SurveyManagementController {
    * Export
    */
 
-  @RequestMapping(path = "/export")
+  @RequestMapping(
+      method = RequestMethod.GET,
+      path = "/export")
   public void export(/* TODO */
       @RequestParam("from")
       @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
