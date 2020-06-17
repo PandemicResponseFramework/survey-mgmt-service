@@ -7,14 +7,17 @@ import java.io.IOException;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import one.tracking.framework.dto.DeviceTokenDto;
 import one.tracking.framework.dto.TokenResponseDto;
 import one.tracking.framework.dto.VerificationDto;
 import one.tracking.framework.service.AuthService;
+import springfox.documentation.annotations.ApiIgnore;
 
 /**
  * @author Marko Voß
@@ -49,5 +52,18 @@ public class AuthController {
       final String userToken) {
 
     return this.authService.handleVerificationRequest(verificationToken, userToken);
+  }
+
+  @RequestMapping(
+      method = RequestMethod.POST,
+      path = "/devicetoken")
+  public void registerDeviceToken(
+      @RequestBody
+      @Valid
+      final DeviceTokenDto deviceTokenDto,
+      @ApiIgnore
+      final Authentication authentication) {
+
+    this.authService.registerDeviceToken(authentication.getName(), deviceTokenDto.getToken());
   }
 }

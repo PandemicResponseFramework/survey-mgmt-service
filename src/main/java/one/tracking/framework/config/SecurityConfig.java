@@ -22,6 +22,9 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
+import one.tracking.framework.filter.BearerAuthenticationFilter;
+import one.tracking.framework.repo.UserRepository;
+import one.tracking.framework.support.JWTHelper;
 
 /**
  * @author Marko Voß
@@ -68,16 +71,52 @@ public class SecurityConfig {
     protected void configure(final HttpSecurity http) throws Exception {
 
       http.antMatcher("/auth/verify")
-          .csrf().disable()
+          .cors().and().csrf().disable()
           .authorizeRequests()
-          .antMatchers(HttpMethod.POST, "/auth/verify").authenticated()
+          .antMatchers(HttpMethod.POST, "/auth/verify").hasAnyAuthority("ROLE_CLIENT")
           .antMatchers(HttpMethod.GET, "/auth/verify").permitAll()
           .and()
           .httpBasic()
           .authenticationEntryPoint(authenticationEntryPointClient())
           .and()
           .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+    }
+  }
 
+  @Configuration
+  @Order(1)
+  public class SecurityConfigDeviceToken extends WebSecurityConfigurerAdapter {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private JWTHelper jwtHelper;
+
+    @Override
+    protected void configure(final HttpSecurity http) throws Exception {
+
+      http.antMatcher("/auth/devicetoken")
+          .cors().and().csrf().disable()
+          .authorizeRequests()
+          .anyRequest().authenticated()
+          .and()
+          .addFilter(bearerAuthenticationFilter())
+          .sessionManagement()
+          .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+    }
+
+    public BearerAuthenticationFilter bearerAuthenticationFilter() throws Exception {
+
+      return new BearerAuthenticationFilter(authenticationManager(), this.jwtHelper) {
+
+        @Override
+        protected boolean checkIfUserExists(final String userId) {
+          return SecurityConfigDeviceToken.this.userRepository.existsById(userId);
+        }
+
+      };
     }
   }
 
@@ -88,7 +127,7 @@ public class SecurityConfig {
    */
   @Configuration
   @Profile("dev")
-  @Order(1)
+  @Order(2)
   public class SecurityConfigDev extends WebSecurityConfigurerAdapter {
 
     @Value("${app.security.dev.user}")
@@ -115,15 +154,9 @@ public class SecurityConfig {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-      http.csrf().disable()
+      http.antMatcher("/manage/**")
+          .cors().and().csrf().disable()
           .authorizeRequests()
-          .antMatchers(
-              "/v2/api-docs",
-              "/swagger*/**",
-              "/webjars/**",
-              "/h2-console/**",
-              "/v3/api-docs/**")
-          .permitAll()
           .anyRequest().hasAnyAuthority(SecurityConfig.this.roleAdmin)
           .and()
           .httpBasic()
@@ -140,7 +173,7 @@ public class SecurityConfig {
    */
   @Configuration
   @Profile("!dev")
-  @Order(1)
+  @Order(2)
   public class SecurityConfigProd extends WebSecurityConfigurerAdapter {
 
     @Autowired
@@ -150,12 +183,34 @@ public class SecurityConfig {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-      http.authorizeRequests()
+      http.antMatcher("/manage/**")
+          .cors().and().csrf().disable()
+          .authorizeRequests()
           .anyRequest().hasAnyAuthority(SecurityConfig.this.roleAdmin)
           .and()
           .oauth2Login()
           .userInfoEndpoint()
           .oidcUserService(this.oidcUserService);
+    }
+  }
+
+  @Configuration
+  @Profile("dev")
+  @Order(3)
+  public class SecurityConfigOpen extends WebSecurityConfigurerAdapter {
+
+    @Override
+    protected void configure(final HttpSecurity http) throws Exception {
+
+      http.authorizeRequests()
+          .antMatchers(
+              "/v2/api-docs",
+              "/swagger*/**",
+              "/webjars/**",
+              "/h2-console/**",
+              "/v3/api-docs/**")
+          .permitAll()
+          .anyRequest().denyAll();
     }
   }
 }
