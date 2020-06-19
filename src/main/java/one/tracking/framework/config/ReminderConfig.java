@@ -53,7 +53,7 @@ public class ReminderConfig implements SchedulingConfigurer {
   private final Map<String, ScheduledFuture<?>> futures = new HashMap<>();
 
   @Bean
-  public TaskScheduler taskScheduler() {
+  public TaskScheduler reminderTaskScheduler() {
     final ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
     threadPoolTaskScheduler.setPoolSize(10);
     threadPoolTaskScheduler.setThreadNamePrefix(
@@ -112,7 +112,7 @@ public class ReminderConfig implements SchedulingConfigurer {
       final Integer reminderValue = survey.getReminderValue();
 
       this.futures.put(nameId,
-          taskScheduler().schedule(
+          reminderTaskScheduler().schedule(
               (Runnable) () -> this.reminderComponent.sendReminder(nameId),
               triggerContext -> {
 
