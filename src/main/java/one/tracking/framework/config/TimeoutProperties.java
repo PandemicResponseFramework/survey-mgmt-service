@@ -34,4 +34,8 @@ public class TimeoutProperties {
 
   @NotNull
   private final Duration access;
+
+  @NotNull
+  private final Duration upload;
+
 }

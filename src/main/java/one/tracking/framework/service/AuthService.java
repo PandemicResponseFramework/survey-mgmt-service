@@ -5,11 +5,26 @@ package one.tracking.framework.service;
 
 import static one.tracking.framework.entity.DataConstants.TOKEN_CONFIRM_LENGTH;
 import static one.tracking.framework.entity.DataConstants.TOKEN_VERIFY_LENGTH;
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Row.MissingCellPolicy;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import one.tracking.framework.component.FileUploadManagementComponent;
 import one.tracking.framework.config.TimeoutProperties;
 import one.tracking.framework.dto.ParticipantInvitationDto;
 import one.tracking.framework.dto.VerificationDto;
@@ -41,7 +57,7 @@ public class AuthService {
 
   private static final Logger LOG = LoggerFactory.getLogger(AuthService.class);
 
-  // private static final Pattern PATTERN_EMAIL_SIMPLE = Pattern.compile("^.+[@].+[.].+$");
+  private static final Pattern PATTERN_EMAIL_SIMPLE = Pattern.compile("^.+[@].+[.].+$");
 
   @Autowired
   private UserRepository userRepository;
@@ -63,6 +79,9 @@ public class AuthService {
 
   @Autowired
   private JWTHelper jwtHelper;
+
+  @Autowired
+  private FileUploadManagementComponent fileManagementComponent;
 
   @Autowired
   private TimeoutProperties timeoutProperties;
@@ -126,7 +145,7 @@ public class AuthService {
     return this.jwtHelper.createJWT(user.getId(), this.timeoutProperties.getAccess().toSeconds());
   }
 
-  public void registerParticipant(final ParticipantInvitationDto registration, final boolean autoUpdateInvitation)
+  public boolean registerParticipant(final ParticipantInvitationDto registration, final boolean autoUpdateInvitation)
       throws IOException {
 
     final String verificationToken = getValidVerificationToken();
@@ -156,58 +175,89 @@ public class AuthService {
     }
 
     if (continueInivitation)
-      sendRegistrationEmail(registration.getEmail(), verificationToken, registration.getConfirmationToken());
+      return sendRegistrationEmail(registration.getEmail(), verificationToken, registration.getConfirmationToken());
+
+    return false;
   }
 
-  public Long importParticipants(final MultipartFile file) throws IOException {
+  public List<String> uploadParticipantsFile(final String userId, final MultipartFile file) throws IOException {
 
-    // final Path tempFile = Files.createTempFile("import", ".tmp");
-    //
-    // Files.copy(file.getInputStream(), tempFile, StandardCopyOption.REPLACE_EXISTING);
+    final Path tempFile = Files.createTempFile("import", ".tmp");
+    final List<String> headers = new ArrayList<>();
 
-    // Example: Get headers
-    // final List<String> headers = new ArrayList<>();
-    //
-    // final DataFormatter formatter = new DataFormatter();
-    //
-    // try (Workbook workbook = WorkbookFactory.create(new BufferedInputStream(
-    // Files.newInputStream(tempFile, StandardOpenOption.READ)))) {
-    //
-    // final Sheet sheet = workbook.getSheetAt(0);
-    // final Row row = sheet.getRow(0);
-    // for (final Cell cell : row) {
-    //
-    // headers.add(formatter.formatCellValue(cell));
-    // }
-    // }
+    if (Files.copy(file.getInputStream(), tempFile, StandardCopyOption.REPLACE_EXISTING) > 0) {
 
-    // Example: Get entries for chosen header
-    // final int headerIndex = 0;
-    //
-    // try (Workbook workbook = WorkbookFactory.create(new BufferedInputStream(
-    // Files.newInputStream(tempFile, StandardOpenOption.READ)))) {
-    //
-    // final Sheet sheet = workbook.getSheetAt(0);
-    // for (final Row row : sheet) {
-    //
-    // if (row.getRowNum() == 0) // Skip header
-    // continue;
-    //
-    // final Cell cell = row.getCell(headerIndex, MissingCellPolicy.RETURN_BLANK_AS_NULL);
-    //
-    // String email = formatter.formatCellValue(cell);
-    // if (email == null)
-    // continue;
-    //
-    // email = email.trim();
-    //
-    // if (email.isEmpty() || !PATTERN_EMAIL_SIMPLE.matcher(email).matches())
-    // continue;
-    //
-    // registerParticipant(ParticipantInvitationDto.builder().email(email).build(), false);
-    //
-    // }
-    // }
+      final DataFormatter formatter = new DataFormatter();
+
+      try (Workbook workbook = WorkbookFactory.create(new BufferedInputStream(
+          Files.newInputStream(tempFile, StandardOpenOption.READ)))) {
+
+        final Sheet sheet = workbook.getSheetAt(0);
+        final Row row = sheet.getRow(0);
+        for (final Cell cell : row) {
+
+          headers.add(formatter.formatCellValue(cell));
+        }
+
+        this.fileManagementComponent.addTempFile(userId, tempFile);
+      }
+    }
+
+    // TODO handle empty file
+
+    return headers;
+  }
+
+  public void performParticipantsImport(final String userId, final int selectedHeaderIndex) throws Exception {
+
+    this.fileManagementComponent.performAction(userId, file -> {
+
+      return performParticipantsImportInternal(file, selectedHeaderIndex);
+    });
+  }
+
+  private Void performParticipantsImportInternal(final Path file, final int selectedHeaderIndex)
+      throws EncryptedDocumentException, IOException {
+
+    LOG.debug("IMPORT: Performing participant import");
+
+    final DataFormatter formatter = new DataFormatter();
+
+    try (Workbook workbook = WorkbookFactory.create(new BufferedInputStream(
+        Files.newInputStream(file, StandardOpenOption.READ)))) {
+
+      final Sheet sheet = workbook.getSheetAt(0);
+      for (final Row row : sheet) {
+
+        if (row.getRowNum() == 0) // Skip header
+          continue;
+
+        final Cell cell = row.getCell(selectedHeaderIndex, MissingCellPolicy.RETURN_BLANK_AS_NULL);
+
+        String email = formatter.formatCellValue(cell);
+
+        LOG.debug("IMPORT: Current email entry: {}", email);
+
+        if (email == null)
+          continue;
+
+        email = email.trim();
+
+        if (email.isEmpty() || !PATTERN_EMAIL_SIMPLE.matcher(email).matches())
+          continue;
+
+        try {
+          if (!registerParticipant(ParticipantInvitationDto.builder().email(email).build(), false)) {
+            LOG.info("Participant invitation '{}' has been skipped as an invitation does already exist.", email);
+          }
+        } catch (final IOException e) {
+          if (LOG.isDebugEnabled())
+            LOG.debug("Participant invitation failed.", e);
+          else
+            LOG.warn("Participant invitation failed: {}", e.getMessage());
+        }
+      }
+    }
 
     return null;
   }
@@ -248,9 +298,10 @@ public class AuthService {
   /**
    * @param email
    * @param verificationToken
+   * @return
    * @throws IOException
    */
-  private void sendRegistrationEmail(final String email, final String verificationToken, final String userToken)
+  private boolean sendRegistrationEmail(final String email, final String verificationToken, final String userToken)
       throws IOException {
 
     final UriComponentsBuilder builder = this.publicUrlBuilder.cloneBuilder()
@@ -270,10 +321,8 @@ public class AuthService {
     final Context context = new Context();
     context.setVariable("link", publicLink);
     final String message = this.templateEngine.process("registrationTemplate", context);
-    final boolean success = this.emailService.sendHTML(email, "Registration", message);
 
-    if (!success)
-      throw new IOException("Sending email to recipient '" + email + "' was not successful.");
+    return this.emailService.sendHTML(email, "Registration", message);
   }
 
   /**

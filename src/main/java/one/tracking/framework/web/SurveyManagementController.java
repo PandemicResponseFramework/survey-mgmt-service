@@ -5,11 +5,18 @@ package one.tracking.framework.web;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
+import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import one.tracking.framework.dto.ParticipantInvitationDto;
 import one.tracking.framework.service.AuthService;
+import one.tracking.framework.service.SurveyManagementService;
 import springfox.documentation.annotations.ApiIgnore;
 
 /**
@@ -32,14 +40,17 @@ public class SurveyManagementController {
   @Autowired
   private AuthService authService;
 
+  @Autowired
+  private SurveyManagementService surveyManagementService;
+
   @RequestMapping(
       method = RequestMethod.GET,
       path = "/test")
-  public String testAD(
+  public Authentication testAD(
       @ApiIgnore
       final Authentication authentication) {
 
-    return authentication.toString();
+    return authentication;
   }
   /*
    * Participants
@@ -60,13 +71,27 @@ public class SurveyManagementController {
 
   @RequestMapping(
       method = RequestMethod.POST,
-      path = "/participant/import",
+      path = "/participant/import/upload",
       consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public Long importParticipants(
+  public List<String> uploadParticipantsFile(
       @RequestParam("file")
-      final MultipartFile file) throws IOException {
+      final MultipartFile file,
+      @ApiIgnore
+      final Authentication authentication) throws IOException {
 
-    return this.authService.importParticipants(file);
+    return this.authService.uploadParticipantsFile(null, file);
+  }
+
+  @RequestMapping(
+      method = RequestMethod.POST,
+      path = "/participant/import/perform")
+  public void importParticipants(
+      @RequestParam("headerIndex")
+      final int selectedHeaderIndex,
+      @ApiIgnore
+      final Authentication authentication) throws Exception {
+
+    this.authService.performParticipantsImport(null, selectedHeaderIndex);
   }
 
   /*
@@ -76,14 +101,31 @@ public class SurveyManagementController {
   @RequestMapping(
       method = RequestMethod.GET,
       path = "/export")
-  public void export(/* TODO */
+  public void export(
       @RequestParam("from")
       @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-      final Instant startDate,
+      final LocalDateTime startTime,
       @RequestParam("to")
       @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-      final Instant endDate) {
-    throw new UnsupportedOperationException();
+      final LocalDateTime endTime,
+      @ApiIgnore
+      final HttpServletResponse response) throws IOException {
+
+    Assert.isTrue(startTime.isBefore(endTime), "'from' datetime value must be before 'to' datetime value.");
+
+    final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("YYYYMMdd_HHmmss")
+        // .withLocale(Locale.UK)
+        .withZone(ZoneOffset.UTC);
+
+    final String filename = "export_" + formatter.format(Instant.now()) + ".xlsx";
+
+    response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
+
+    this.surveyManagementService.exportData(
+        startTime.toInstant(ZoneOffset.UTC),
+        endTime.toInstant(ZoneOffset.UTC),
+        response.getOutputStream());
   }
 
   /*

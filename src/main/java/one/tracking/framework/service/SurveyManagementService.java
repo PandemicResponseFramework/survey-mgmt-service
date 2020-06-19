@@ -3,6 +3,9 @@
  */
 package one.tracking.framework.service;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -10,6 +13,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import one.tracking.framework.component.SurveyDataExportComponent;
 import one.tracking.framework.domain.SearchResult;
 import one.tracking.framework.dto.meta.question.BooleanQuestionDto;
 import one.tracking.framework.dto.meta.question.ChecklistEntryDto;
@@ -59,6 +63,15 @@ public class SurveyManagementService {
 
   @Autowired
   private AnswerRepository answerRepository;
+
+  @Autowired
+  private SurveyDataExportComponent exportComponent;
+
+  public void exportData(final Instant startTime, final Instant endTime, final OutputStream outStream)
+      throws IOException {
+
+    this.exportComponent.export(startTime, endTime, outStream);
+  }
 
   /**
    *
