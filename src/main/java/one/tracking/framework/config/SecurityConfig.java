@@ -183,10 +183,9 @@ public class SecurityConfig {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-      http.antMatcher("/manage/**")
-          .cors().and().csrf().disable()
-          .authorizeRequests()
-          .anyRequest().hasAnyAuthority(SecurityConfig.this.roleAdmin)
+      http.authorizeRequests()
+          .antMatchers("/manage/**").hasAnyAuthority(SecurityConfig.this.roleAdmin)
+          .antMatchers("/oauth2/**").permitAll()
           .and()
           .oauth2Login()
           .userInfoEndpoint()
