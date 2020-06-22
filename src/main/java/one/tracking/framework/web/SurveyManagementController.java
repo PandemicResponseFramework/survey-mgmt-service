@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import one.tracking.framework.dto.ParticipantInvitationDto;
+import one.tracking.framework.dto.TableUploadFeedbackDto;
 import one.tracking.framework.service.AuthService;
 import one.tracking.framework.service.SurveyManagementService;
 import springfox.documentation.annotations.ApiIgnore;
@@ -73,13 +73,13 @@ public class SurveyManagementController {
       method = RequestMethod.POST,
       path = "/participant/import/upload",
       consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public List<String> uploadParticipantsFile(
+  public TableUploadFeedbackDto uploadParticipantsFile(
       @RequestParam("file")
       final MultipartFile file,
       @ApiIgnore
       final Authentication authentication) throws IOException {
 
-    return this.authService.uploadParticipantsFile(null, file);
+    return this.authService.uploadParticipantsFile(authentication.getName(), file);
   }
 
   @RequestMapping(

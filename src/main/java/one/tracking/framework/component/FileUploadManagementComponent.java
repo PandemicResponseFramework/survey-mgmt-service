@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import javax.annotation.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ import org.springframework.web.context.annotation.ApplicationScope;
 import org.threeten.bp.Instant;
 import one.tracking.framework.config.TimeoutProperties;
 import one.tracking.framework.domain.FileHandler;
+import one.tracking.framework.domain.ScheduledDeletionFuture;
 import one.tracking.framework.exception.ConflictException;
 
 /**
@@ -41,61 +43,59 @@ public class FileUploadManagementComponent {
   @Autowired
   private TimeoutProperties timeoutProperties;
 
-  private final Map<String, Path> fileUploadMap = new HashMap<>();
+  private final Map<String, ScheduledDeletionFuture<?>> scheduledTasks = new HashMap<>();
 
-  private final Map<String, ScheduledFuture<?>> scheduledTasks = new HashMap<>();
-
-  public void addTempFile(final String userId, final Path tempFile) {
+  public long addTempFile(final String userId, final Path tempFile) {
 
     LOG.debug("Adding managed temporary file. userId: {}; file: {}", userId, tempFile);
 
-    this.fileUploadMap.put(userId, tempFile);
-    this.scheduledTasks.put(userId, createDeletionTask(userId));
+    this.scheduledTasks.get(userId);
+
+    if (this.scheduledTasks.get(userId) != null) {
+      this.scheduledTasks.get(userId).cancel(false);
+    }
+
+    final ScheduledDeletionFuture<?> task = createDeletionTask(userId, tempFile);
+    this.scheduledTasks.put(userId, task);
+    return task.getDelay(TimeUnit.MILLISECONDS);
   }
 
   @Async
   public <V> V performAction(final String userId, final FileHandler<V> fileHandler) throws Exception {
 
-    final Path path = this.fileUploadMap.get(userId);
+    final ScheduledDeletionFuture<?> future = this.scheduledTasks.get(userId);
 
-    LOG.debug("Performing action for temporary file. userId: {}; file: {}", userId, path);
-
-    if (path == null)
+    if (future == null)
       throw new ConflictException("The uploaded file is no longer available.");
 
-    if (!this.scheduledTasks.get(userId).cancel(false)) {
+    LOG.debug("Performing action for temporary file. userId: {}; file: {}", userId, future.getFile());
+
+    if (!future.cancel(false)) {
       // Already deleted the file
       LOG.debug("Scheduled deletion task got finished already.");
       throw new ConflictException("The uploaded file is no longer available.");
     }
 
     try {
-      return fileHandler.perform(path);
+      return fileHandler.perform(future.getFile());
     } catch (final Exception e) {
       throw e;
     } finally {
-      this.scheduledTasks.put(userId, createDeletionTask(userId));
+      this.scheduledTasks.put(userId, createDeletionTask(userId, future.getFile()));
     }
 
   }
 
-  private ScheduledFuture<?> createDeletionTask(final String userId) {
+  private ScheduledDeletionFuture<?> createDeletionTask(final String userId, final Path file) {
 
-    LOG.debug("Creating scheduled deletion task for userId: {}", userId);
+    LOG.debug("Creating scheduled deletion task for file: {}", file);
 
-    return this.scheduler.schedule((Runnable) () -> {
-
-      final Path file = this.fileUploadMap.remove(userId);
+    final ScheduledFuture<?> future = this.scheduler.schedule((Runnable) () -> {
 
       LOG.debug("Executing scheduled deletion task for userId: {}; file: {}", userId, file);
 
-      try {
-        if (file != null) {
-          Files.deleteIfExists(file);
-        }
-      } catch (final IOException e) {
-        LOG.warn("Unable to delete temp file.", e);
-      }
+      deleteFile(file);
+      this.scheduledTasks.remove(userId);
 
     }, triggerContext -> {
       final Date lastExecution = triggerContext.lastScheduledExecutionTime();
@@ -106,5 +106,18 @@ public class FileUploadManagementComponent {
       }
       return null;
     });
+
+    return new ScheduledDeletionFuture<>(future, file);
+  }
+
+  private void deleteFile(final Path path) {
+
+    try {
+      if (path != null) {
+        Files.deleteIfExists(path);
+      }
+    } catch (final IOException e) {
+      LOG.warn("Unable to delete temp file.", e);
+    }
   }
 }

@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,6 +23,10 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.google.common.collect.ImmutableList;
 import one.tracking.framework.filter.BearerAuthenticationFilter;
 import one.tracking.framework.repo.UserRepository;
 import one.tracking.framework.support.JWTHelper;
@@ -40,6 +45,20 @@ public class SecurityConfig {
   @Bean
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
+  }
+
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+
+    final CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(ImmutableList.of("*"));
+    configuration.setAllowedMethods(ImmutableList.of("HEAD", "GET", "POST", "PUT", "DELETE", "PATCH"));
+    configuration.setAllowCredentials(true);
+    configuration.setAllowedHeaders(
+        ImmutableList.of(HttpHeaders.AUTHORIZATION, HttpHeaders.CACHE_CONTROL, HttpHeaders.CONTENT_TYPE));
+    final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
   }
 
   @Configuration
@@ -154,10 +173,9 @@ public class SecurityConfig {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-      http.antMatcher("/manage/**")
-          .cors().and().csrf().disable()
+      http.cors().and().csrf().disable()
           .authorizeRequests()
-          .anyRequest().hasAnyAuthority(SecurityConfig.this.roleAdmin)
+          .antMatchers("/manage/**", "/user").hasAnyAuthority(SecurityConfig.this.roleAdmin)
           .and()
           .httpBasic()
           .authenticationEntryPoint(authenticationEntryPointDev())
@@ -183,8 +201,9 @@ public class SecurityConfig {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-      http.authorizeRequests()
-          .antMatchers("/manage/**").hasAnyAuthority(SecurityConfig.this.roleAdmin)
+      http.cors().and().csrf().disable()
+          .authorizeRequests()
+          .antMatchers("/manage/**", "/user").hasAnyAuthority(SecurityConfig.this.roleAdmin)
           .antMatchers("/oauth2/**").permitAll()
           .and()
           .oauth2Login()
@@ -201,7 +220,8 @@ public class SecurityConfig {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-      http.authorizeRequests()
+      http.cors().and().csrf().disable()
+          .authorizeRequests()
           .antMatchers(
               "/v2/api-docs",
               "/swagger*/**",

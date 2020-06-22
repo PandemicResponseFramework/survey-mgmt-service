@@ -38,6 +38,7 @@ import org.thymeleaf.context.Context;
 import one.tracking.framework.component.FileUploadManagementComponent;
 import one.tracking.framework.config.TimeoutProperties;
 import one.tracking.framework.dto.ParticipantInvitationDto;
+import one.tracking.framework.dto.TableUploadFeedbackDto;
 import one.tracking.framework.dto.VerificationDto;
 import one.tracking.framework.entity.DeviceToken;
 import one.tracking.framework.entity.User;
@@ -180,12 +181,16 @@ public class AuthService {
     return false;
   }
 
-  public List<String> uploadParticipantsFile(final String userId, final MultipartFile file) throws IOException {
+  public TableUploadFeedbackDto uploadParticipantsFile(final String userId, final MultipartFile file)
+      throws IOException {
 
     final Path tempFile = Files.createTempFile("import", ".tmp");
     final List<String> headers = new ArrayList<>();
 
-    if (Files.copy(file.getInputStream(), tempFile, StandardCopyOption.REPLACE_EXISTING) > 0) {
+    final long bytesWritten = Files.copy(file.getInputStream(), tempFile, StandardCopyOption.REPLACE_EXISTING);
+    final long timeout = this.fileManagementComponent.addTempFile(userId, tempFile);
+
+    if (bytesWritten > 0) {
 
       final DataFormatter formatter = new DataFormatter();
 
@@ -194,18 +199,22 @@ public class AuthService {
 
         final Sheet sheet = workbook.getSheetAt(0);
         final Row row = sheet.getRow(0);
-        for (final Cell cell : row) {
 
+        for (final Cell cell : row) {
           headers.add(formatter.formatCellValue(cell));
         }
 
-        this.fileManagementComponent.addTempFile(userId, tempFile);
+        if (headers.isEmpty())
+          throw new IllegalArgumentException("Uploaded file contains no header elements in the first row.");
+
+        return TableUploadFeedbackDto.builder()
+            .headers(headers)
+            .timeout(timeout)
+            .build();
       }
-    }
+    } else
+      throw new IllegalArgumentException("Empty file uploaded.");
 
-    // TODO handle empty file
-
-    return headers;
   }
 
   public void performParticipantsImport(final String userId, final int selectedHeaderIndex) throws Exception {
