@@ -10,6 +10,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -24,8 +25,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import one.tracking.framework.dto.ParticipantInvitationDto;
-import one.tracking.framework.dto.TableUploadFeedbackDto;
-import one.tracking.framework.service.AuthService;
+import one.tracking.framework.dto.TokenResponseDto;
+import one.tracking.framework.dto.ParticipantImportFeedbackDto;
+import one.tracking.framework.service.ParticipantService;
 import one.tracking.framework.service.SurveyManagementService;
 import springfox.documentation.annotations.ApiIgnore;
 
@@ -38,7 +40,7 @@ import springfox.documentation.annotations.ApiIgnore;
 public class SurveyManagementController {
 
   @Autowired
-  private AuthService authService;
+  private ParticipantService participantService;
 
   @Autowired
   private SurveyManagementService surveyManagementService;
@@ -62,36 +64,55 @@ public class SurveyManagementController {
   public void registerParticipant(
       @RequestBody
       @Valid
-      final ParticipantInvitationDto registration,
-      @ApiIgnore
-      final Authentication authentication) throws IOException {
+      final ParticipantInvitationDto registration) throws IOException {
 
-    this.authService.registerParticipant(registration, true);
+    this.participantService.registerParticipant(
+        registration.getEmail(),
+        registration.getConfirmationToken(),
+        true);
   }
 
   @RequestMapping(
       method = RequestMethod.POST,
-      path = "/participant/import/upload",
+      path = "/participant/import",
       consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public TableUploadFeedbackDto uploadParticipantsFile(
+  public TokenResponseDto importParticipants(
       @RequestParam("file")
       final MultipartFile file,
-      @ApiIgnore
-      final Authentication authentication) throws IOException {
+      @RequestParam("headerIndex")
+      final int selectedHeaderIndex) throws Exception {
 
-    return this.authService.uploadParticipantsFile(authentication.getName(), file);
+    final String importToken = this.participantService.importParticipants(file, selectedHeaderIndex);
+    return TokenResponseDto.builder().token(importToken).build();
+  }
+
+  @RequestMapping(
+      method = RequestMethod.GET,
+      path = "/participant/import/{importId}")
+  public ParticipantImportFeedbackDto getImportedData(
+      @PathVariable(name = "importId")
+      final String importId,
+      @RequestParam(name = "startIndex", required = false)
+      @Min(0)
+      final Integer startIndex,
+      @RequestParam(name = "limit", required = false)
+      @Min(0)
+      final Integer limit) {
+
+    return this.participantService.getImportedParticipants(importId, startIndex, limit);
   }
 
   @RequestMapping(
       method = RequestMethod.POST,
-      path = "/participant/import/perform")
-  public void importParticipants(
-      @RequestParam("headerIndex")
-      final int selectedHeaderIndex,
-      @ApiIgnore
-      final Authentication authentication) throws Exception {
+      path = "/participant/import/{importId}")
+  public void cancelImport(
+      @PathVariable(name = "importId")
+      final String importId,
+      @RequestParam(name = "cancel", required = true)
+      final Boolean cancel) {
 
-    this.authService.performParticipantsImport(null, selectedHeaderIndex);
+    if (cancel)
+      this.participantService.cancelImport(importId);
   }
 
   /*
