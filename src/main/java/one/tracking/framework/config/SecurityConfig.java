@@ -203,7 +203,7 @@ public class SecurityConfig {
 
       http.cors().and().csrf().disable()
           .authorizeRequests()
-          .antMatchers("/manage/**", "/user").hasAnyAuthority(SecurityConfig.this.roleAdmin)
+          .antMatchers("/manage/**", "/user").hasAnyRole(SecurityConfig.this.roleAdmin)
           .antMatchers("/oauth2/**").permitAll()
           .and()
           .oauth2Login()
