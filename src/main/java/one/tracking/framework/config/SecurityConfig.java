@@ -173,8 +173,9 @@ public class SecurityConfig {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-      http.cors().and().csrf().disable()
-          .authorizeRequests()
+      http.headers().frameOptions().sameOrigin();
+
+      http.cors().and().csrf().disable().authorizeRequests()
           .antMatchers("/manage/**", "/user").hasAnyAuthority(SecurityConfig.this.roleAdmin)
           .and()
           .httpBasic()
@@ -201,8 +202,7 @@ public class SecurityConfig {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-      http.cors().and().csrf().disable()
-          .authorizeRequests()
+      http.cors().and().csrf().disable().authorizeRequests()
           .antMatchers("/manage/**", "/user").hasAnyRole(SecurityConfig.this.roleAdmin)
           .antMatchers("/oauth2/**").permitAll()
           .and()
@@ -220,8 +220,10 @@ public class SecurityConfig {
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
 
-      http.cors().and().csrf().disable()
-          .authorizeRequests()
+      http.headers().frameOptions().sameOrigin();
+      http.csrf().ignoringAntMatchers("/h2-console/**");
+
+      http.authorizeRequests()
           .antMatchers(
               "/v2/api-docs",
               "/swagger*/**",
