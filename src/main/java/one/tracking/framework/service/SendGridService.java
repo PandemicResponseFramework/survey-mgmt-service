@@ -4,8 +4,7 @@
 package one.tracking.framework.service;
 
 import java.io.IOException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,15 +15,15 @@ import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author Marko Voß
  *
  */
+@Slf4j
 @Service
 public class SendGridService {
-
-  private static final Logger LOG = LoggerFactory.getLogger(SendGridService.class);
 
   @Value("${app.email.reply.to}")
   private String replyTo;
@@ -32,8 +31,17 @@ public class SendGridService {
   @Value("${app.email.from}")
   private String from;
 
+  @Value("${app.email.enabled:true}")
+  private boolean enabled;
+
   @Autowired
   private SendGrid sendGridClient;
+
+  @PostConstruct
+  public void init() {
+    if (!this.enabled)
+      log.info("SendGrid service is disabled!");
+  }
 
   public boolean sendText(final String to, final String subject, final String body) throws IOException {
     return sendEmailType("text/plain", to, subject, body);
@@ -46,8 +54,13 @@ public class SendGridService {
   private boolean sendEmailType(final String type, final String to, final String subject,
       final String body) throws IOException {
 
+    if (!this.enabled) {
+      log.debug("Service is disabled. Skipping sending email");
+      return false;
+    }
+
     final Response response = sendEmail(to, subject, new Content(type, body));
-    LOG.debug("Email response: Status code: {}, Body: {}, Headers: {}",
+    log.debug("Email response: Status code: {}, Body: {}, Headers: {}",
         response.getStatusCode(),
         response.getBody(),
         response.getHeaders());
