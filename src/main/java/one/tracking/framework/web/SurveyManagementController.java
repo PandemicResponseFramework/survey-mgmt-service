@@ -8,11 +8,11 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
@@ -24,9 +24,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import one.tracking.framework.dto.InvitationFeedbackDto;
+import one.tracking.framework.dto.ParticipantDto;
+import one.tracking.framework.dto.ParticipantImportFeedbackDto;
 import one.tracking.framework.dto.ParticipantInvitationDto;
 import one.tracking.framework.dto.TokenResponseDto;
-import one.tracking.framework.dto.ParticipantImportFeedbackDto;
 import one.tracking.framework.service.ParticipantService;
 import one.tracking.framework.service.SurveyManagementService;
 import springfox.documentation.annotations.ApiIgnore;
@@ -54,22 +56,42 @@ public class SurveyManagementController {
 
     return authentication;
   }
+
   /*
    * Participants
    */
 
   @RequestMapping(
+      method = RequestMethod.GET,
+      path = "/participant")
+  public List<ParticipantDto> getParticipants(
+      @RequestParam(name = "maxTimestamp", required = true)
+      @Min(0)
+      final Long maxTimestamp,
+      @RequestParam(name = "startIndex", required = false)
+      @Min(0)
+      final Integer startIndex,
+      @RequestParam(name = "limit", required = false)
+      @Min(0)
+      final Integer limit) {
+
+    return this.participantService.getParticipants(Instant.ofEpochMilli(maxTimestamp), startIndex, limit);
+  }
+
+  @RequestMapping(
       method = RequestMethod.POST,
       path = "/participant/invite")
-  public void registerParticipant(
+  public InvitationFeedbackDto registerParticipant(
       @RequestBody
       @Valid
       final ParticipantInvitationDto registration) throws IOException {
 
-    this.participantService.registerParticipant(
-        registration.getEmail(),
-        registration.getConfirmationToken(),
-        true);
+    return InvitationFeedbackDto.builder()
+        .feedback(this.participantService.registerParticipant(
+            registration.getEmail(),
+            registration.getConfirmationToken(),
+            true))
+        .build();
   }
 
   @RequestMapping(
@@ -124,13 +146,14 @@ public class SurveyManagementController {
       path = "/export")
   public void export(
       @RequestParam("from")
-      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-      final LocalDateTime startTime,
+      final Long from,
       @RequestParam("to")
-      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-      final LocalDateTime endTime,
+      final Long to,
       @ApiIgnore
       final HttpServletResponse response) throws IOException {
+
+    final LocalDateTime startTime = Instant.ofEpochMilli(from).atOffset(ZoneOffset.UTC).toLocalDateTime();
+    final LocalDateTime endTime = Instant.ofEpochMilli(to).atOffset(ZoneOffset.UTC).toLocalDateTime();
 
     Assert.isTrue(startTime.isBefore(endTime), "'from' datetime value must be before 'to' datetime value.");
 

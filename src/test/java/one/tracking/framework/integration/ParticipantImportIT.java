@@ -47,7 +47,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import one.tracking.framework.SurveyManagementApplication;
-import one.tracking.framework.dto.ParticipantImportEntryDto;
+import one.tracking.framework.dto.ParticipantDto;
 import one.tracking.framework.dto.ParticipantImportFeedbackDto;
 import one.tracking.framework.dto.TokenResponseDto;
 import one.tracking.framework.entity.ParticipantImportStatus;
@@ -265,7 +265,7 @@ public class ParticipantImportIT {
       assertThat(feedback.getStatus(),
           is(oneOf(ParticipantImportStatus.IN_PROGRESS, ParticipantImportStatus.CANCELLED)));
 
-      for (final ParticipantImportEntryDto entry : feedback.getEntries()) {
+      for (final ParticipantDto entry : feedback.getEntries()) {
 
         assertThat(entry.getEmail(), is(not(blankOrNullString())));
         assertThat(entry.getState(), is(oneOf(VerificationState.ERROR, VerificationState.PENDING)));

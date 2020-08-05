@@ -40,7 +40,7 @@ import one.tracking.framework.component.AsyncExecutor;
 import one.tracking.framework.component.AsyncExecutor.AsyncTask;
 import one.tracking.framework.component.AuthenticationSupport;
 import one.tracking.framework.domain.InvitationFeedback;
-import one.tracking.framework.dto.ParticipantImportEntryDto;
+import one.tracking.framework.dto.ParticipantDto;
 import one.tracking.framework.dto.ParticipantImportFeedbackDto;
 import one.tracking.framework.entity.ParticipantImport;
 import one.tracking.framework.entity.ParticipantImportStatus;
@@ -157,6 +157,29 @@ public class ParticipantService {
     });
   }
 
+  public List<ParticipantDto> getParticipants(final Instant maxTimestamp, final Integer startIndex,
+      final Integer limit) {
+
+    final TypedQuery<Verification> query =
+        this.entityManager.createNamedQuery("Verification.findByCreatedAtBeforeOrderByEmailAsc", Verification.class);
+    query.setParameter(1, maxTimestamp);
+
+    if (startIndex != null)
+      query.setFirstResult(startIndex);
+    if (limit != null)
+      query.setMaxResults(limit);
+
+    final List<Verification> verifications = this.transactionTemplate.execute(status -> {
+      return query.getResultList();
+    });
+
+    return verifications.stream().map(f -> ParticipantDto.builder()
+        .email(f.getEmail())
+        .state(f.getState())
+        .build())
+        .collect(Collectors.toList());
+  }
+
   public ParticipantImportFeedbackDto getImportedParticipants(final String importId, final Integer startIndex,
       final Integer limit) {
 
@@ -185,7 +208,7 @@ public class ParticipantService {
         .countSkipped(participantImport.getCountSkipped())
         .countSuccess(participantImport.getCountSuccess())
         .status(participantImport.getStatus())
-        .entries(verifications.stream().map(verification -> ParticipantImportEntryDto.builder()
+        .entries(verifications.stream().map(verification -> ParticipantDto.builder()
             .email(verification.getEmail())
             .state(verification.getState())
             .build())

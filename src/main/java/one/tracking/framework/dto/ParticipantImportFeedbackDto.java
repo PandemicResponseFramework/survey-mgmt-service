@@ -16,7 +16,7 @@ import one.tracking.framework.entity.ParticipantImportStatus;
 @Builder
 public class ParticipantImportFeedbackDto {
 
-  private List<ParticipantImportEntryDto> entries;
+  private List<ParticipantDto> entries;
 
   private int countSkipped;
   private int countFailed;

@@ -13,7 +13,7 @@ import one.tracking.framework.entity.VerificationState;
  */
 @Data
 @Builder
-public class ParticipantImportEntryDto {
+public class ParticipantDto {
 
   private String email;
   private VerificationState state;
