@@ -165,7 +165,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>one.tracking.framework</groupId>
+			<groupId>prf.survey</groupId>
 			<artifactId>survey-commons</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
