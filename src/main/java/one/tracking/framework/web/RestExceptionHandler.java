@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +41,7 @@ import one.tracking.framework.exception.ConflictException;
 @RestControllerAdvice
 @ConditionalOnWebApplication
 @ConditionalOnProperty(name = "app.web.exceptionhandler.active", havingValue = "true", matchIfMissing = true)
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(RestExceptionHandler.class);
@@ -72,10 +75,10 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public ResponseEntity<String> badRequest(final Exception e) {
 
-    if (!LOG.isTraceEnabled())
-      LOG.debug(e.getMessage());
-    else
+    if (LOG.isTraceEnabled())
       LOG.trace(e.getMessage(), e);
+    else
+      LOG.debug(e.getMessage());
 
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
   }
@@ -84,10 +87,10 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
   @ResponseStatus(HttpStatus.CONFLICT)
   public ResponseEntity<String> conflictRequest(final Exception e) {
 
-    if (!LOG.isTraceEnabled())
-      LOG.debug(e.getMessage());
-    else
+    if (LOG.isTraceEnabled())
       LOG.trace(e.getMessage(), e);
+    else
+      LOG.debug(e.getMessage());
 
     return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
   }
@@ -96,11 +99,23 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
   @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
   public ResponseEntity<String> notImplemented(final Exception e) {
 
-    if (!LOG.isTraceEnabled())
-      LOG.debug(e.getMessage());
-    else
+    if (LOG.isTraceEnabled())
       LOG.trace(e.getMessage(), e);
+    else
+      LOG.debug(e.getMessage());
 
     return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(e.getMessage());
+  }
+
+  @ExceptionHandler(value = {Exception.class})
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  public ResponseEntity<String> error(final Exception e) {
+
+    if (LOG.isTraceEnabled())
+      LOG.trace(e.getMessage(), e);
+    else
+      LOG.debug(e.getMessage());
+
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
   }
 }

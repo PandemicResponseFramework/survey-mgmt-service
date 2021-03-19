@@ -52,7 +52,7 @@ import one.tracking.framework.dto.ParticipantImportFeedbackDto;
 import one.tracking.framework.dto.TokenResponseDto;
 import one.tracking.framework.entity.ParticipantImportStatus;
 import one.tracking.framework.entity.VerificationState;
-import one.tracking.framework.service.SendGridService;
+import one.tracking.framework.service.mail.SendGridService;
 
 /**
  * @author Marko Voß

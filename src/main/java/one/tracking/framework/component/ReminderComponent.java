@@ -142,15 +142,18 @@ public class ReminderComponent {
 
     LOG.debug("Sending reminders for survey '{}'...", nameId);
 
-    final Survey currentSurvey = getSurvey(nameId);
+    final Survey currentSurvey = getSurveyWithReminder(nameId);
 
     if (currentSurvey == null)
       return ReminderTaskResult.NOOP;
 
     // Instance might be null, if no user participated on the current survey yet.
     final SurveyInstance currentInstance = getCurrentSurveyInstance(currentSurvey, true);
-    final SurveyInstance dependsOnInstance = getCurrentSurveyInstance(currentSurvey.getDependsOn(), false);
+    SurveyInstance dependsOnInstance = null;
 
+    if (currentSurvey.getDependsOn() != null) {
+      dependsOnInstance = getCurrentSurveyInstance(getSurvey(currentSurvey.getDependsOn()), false);
+    }
     /*
      * If the dependOn instance has not yet been created no participant performed the depending survey
      * yet and because of this, there is nothing left to do.
@@ -196,7 +199,7 @@ public class ReminderComponent {
     });
   }
 
-  private Survey getSurvey(final String nameId) {
+  private Survey getSurveyWithReminder(final String nameId) {
 
     final TypedQuery<Survey> query = this.entityManager.createNamedQuery(
         "Survey.findByNameIdAndReleaseStatusAndReminderTypeNotAndIntervalTypeNot", Survey.class);
@@ -204,6 +207,25 @@ public class ReminderComponent {
     query.setParameter(2, ReleaseStatusType.RELEASED);
     query.setParameter(3, ReminderType.NONE);
     query.setParameter(4, IntervalType.NONE);
+    query.setFirstResult(0);
+    query.setMaxResults(1);
+
+    return this.transactionTemplate.execute(status -> {
+      status.flush();
+      try {
+        return query.getSingleResult();
+      } catch (final NoResultException e) {
+        return null;
+      }
+    });
+  }
+
+  private Survey getSurvey(final String nameId) {
+
+    final TypedQuery<Survey> query = this.entityManager.createNamedQuery(
+        "Survey.findByNameIdAndReleaseStatus", Survey.class);
+    query.setParameter(1, nameId);
+    query.setParameter(2, ReleaseStatusType.RELEASED);
     query.setFirstResult(0);
     query.setMaxResults(1);
 
@@ -459,7 +481,8 @@ public class ReminderComponent {
       LOG.trace("{}: Calculating survey status for DeviceToken '{}' having {} SurveyResponses.",
           currentSurvey.getNameId(), deviceToken.getToken(), surveyResponses.size());
 
-      final SurveyStatusType status = this.utility.calculateSurveyStatus(currentSurvey.getDependsOn(), surveyResponses);
+      final SurveyStatusType status =
+          this.utility.calculateSurveyStatus(dependsOnInstance.getSurvey(), surveyResponses);
 
       LOG.trace("{}: Calculating survey status for DeviceToken '{}' DONE.",
           currentSurvey.getNameId(), deviceToken.getToken());

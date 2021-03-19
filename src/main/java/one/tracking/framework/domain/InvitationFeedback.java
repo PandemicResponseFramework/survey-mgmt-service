@@ -10,6 +10,6 @@ package one.tracking.framework.domain;
 public enum InvitationFeedback {
 
   SKIPPED,
-  SUCCESS,
+  PENDING,
   FAILED;
 }

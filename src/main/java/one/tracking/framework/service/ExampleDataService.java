@@ -45,7 +45,6 @@ import one.tracking.framework.repo.VerificationRepository;
 import one.tracking.framework.support.JWTHelper;
 
 /**
- * FIXME DEV only
  *
  * @author Marko Voß
  *
@@ -114,31 +113,6 @@ public class ExampleDataService {
 
     int order = 0;
     final List<Question> questions = new ArrayList<>(12);
-
-    final String s256 =
-        "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata!";
-    final String s64 = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed dia";
-    final String s32 = "Lorem ipsum dolor sit amet, cons";
-
-    // TEST MAX TEXT
-    questions.add(createChoiceQuestion(
-        s256,
-        order++, false, false,
-        Arrays.asList(
-            s64,
-            s64,
-            s64,
-            s64)));
-
-    questions.add(createRangeQuestion(
-        s256,
-        order++,
-        false,
-        0,
-        10,
-        0,
-        s32,
-        s32));
 
     // 1
     questions.add(createChoiceQuestion(
@@ -226,8 +200,10 @@ public class ExampleDataService {
     return this.surveyRepository.save(Survey.builder()
         .questions(questions)
         .nameId("BASIC")
-        .title(s32)
-        .description(s256)
+        .title("Profile Set-up")
+        .description("Please complete this survey to set-up your study participant profile. " +
+            "You only need to complete this survey at the start of the study. " +
+            "However, if your circumstances change then please select this profile set-up survey again to update your details.")
         .intervalType(IntervalType.NONE)
         .reminderType(ReminderType.NONE)
         .releaseStatus(ReleaseStatusType.RELEASED)
@@ -451,10 +427,13 @@ public class ExampleDataService {
         order++, true, 256));
 
     return this.surveyRepository.save(Survey.builder()
-        .dependsOn(dependsOn)
+        .dependsOn(dependsOn.getNameId())
         .questions(questions)
         .nameId("REGULAR")
-        .title("Regular survey")
+        .title("Study Survey")
+        .description("Each 15-minute survey runs for 7 days from Monday-Sunday. " +
+            "Please try to complete on similar days each week. If you can’t participate one week, " +
+            "just answer the next week’s survey as usual. Try to complete the survey when you have a reliable internet signal.")
         .releaseStatus(ReleaseStatusType.RELEASED)
         .intervalStart(Instant.parse("2020-05-18T00:00:00Z"))
         .intervalType(IntervalType.WEEKLY)
@@ -493,7 +472,7 @@ public class ExampleDataService {
 
     final List<Answer> answerEntities = answers.stream().map(f -> createAnswer(f)).collect(Collectors.toList());
 
-    ChoiceQuestion parent = this.questionRepository.save(ChoiceQuestion.builder()
+    ChoiceQuestion result = this.questionRepository.save(ChoiceQuestion.builder()
         .question(question)
         .ranking(order)
         .answers(answerEntities)
@@ -509,14 +488,16 @@ public class ExampleDataService {
       final ChoiceContainer container = this.containerRepository.save(ChoiceContainer.builder()
           .dependsOn(dependsOnAnswers)
           .questions(questions)
-          .parent(parent)
+          .parent(result)
           .build());
 
-      parent.setContainer(container);
-      parent = this.questionRepository.save(parent);
+      result.setContainer(container);
     }
 
-    return parent;
+    result.setReleaseStatus(ReleaseStatusType.RELEASED);
+    result = this.questionRepository.save(result);
+
+    return result;
   }
 
   public BooleanQuestion createBoolQuestion(
@@ -532,7 +513,7 @@ public class ExampleDataService {
       final Boolean dependsOn,
       final List<Question> questions) {
 
-    BooleanQuestion parent = this.questionRepository.save(BooleanQuestion.builder()
+    BooleanQuestion result = this.questionRepository.save(BooleanQuestion.builder()
         .question(question)
         .ranking(order)
         .optional(true)
@@ -543,25 +524,30 @@ public class ExampleDataService {
       final BooleanContainer container = this.containerRepository.save(BooleanContainer.builder()
           .questions(questions)
           .dependsOn(dependsOn)
-          .parent(parent)
+          .parent(result)
           .build());
 
-      parent.setContainer(container);
-      parent = this.questionRepository.save(parent);
+      result.setContainer(container);
     }
 
-    return parent;
+    result.setReleaseStatus(ReleaseStatusType.RELEASED);
+    result = this.questionRepository.save(result);
+
+    return result;
   }
 
   public ChecklistEntry createChecklistEntry(
       final String question,
       final int order) {
 
-    return this.questionRepository.save(ChecklistEntry.builder()
+    final ChecklistEntry result = this.questionRepository.save(ChecklistEntry.builder()
         .question(question)
         .ranking(order)
         .optional(true)
         .build());
+
+    result.setReleaseStatus(ReleaseStatusType.RELEASED);
+    return this.questionRepository.save(result);
   }
 
   public Question createTextQuestion(
@@ -570,7 +556,7 @@ public class ExampleDataService {
       final boolean multiline,
       final int length) {
 
-    final TextQuestion parent = this.questionRepository.save(TextQuestion.builder()
+    final TextQuestion result = this.questionRepository.save(TextQuestion.builder()
         .question(question)
         .multiline(multiline)
         .ranking(order)
@@ -578,7 +564,9 @@ public class ExampleDataService {
         .optional(true)
         .build());
 
-    return parent;
+    result.setReleaseStatus(ReleaseStatusType.RELEASED);
+
+    return this.questionRepository.save(result);
   }
 
   public Question createChecklistQuestion(
@@ -589,12 +577,15 @@ public class ExampleDataService {
     if (entries == null || entries.isEmpty())
       throw new IllegalArgumentException("Entries must not be null or empty.");
 
-    return this.questionRepository.save(ChecklistQuestion.builder()
+    final ChecklistQuestion result = this.questionRepository.save(ChecklistQuestion.builder()
         .question(question)
         .entries(entries)
         .ranking(order)
         .optional(true)
         .build());
+
+    result.setReleaseStatus(ReleaseStatusType.RELEASED);
+    return this.questionRepository.save(result);
   }
 
   public Question createRangeQuestion(
@@ -605,7 +596,7 @@ public class ExampleDataService {
       final Integer defaultValue,
       final String minText, final String maxText) {
 
-    final RangeQuestion parent = this.questionRepository.save(RangeQuestion.builder()
+    final RangeQuestion result = this.questionRepository.save(RangeQuestion.builder()
         .question(question)
         .minValue(minValue)
         .maxValue(maxValue)
@@ -616,7 +607,9 @@ public class ExampleDataService {
         .optional(optional)
         .build());
 
-    return parent;
+    result.setReleaseStatus(ReleaseStatusType.RELEASED);
+
+    return this.questionRepository.save(result);
   }
 
   public Question createNumberQuestion(
@@ -625,7 +618,7 @@ public class ExampleDataService {
       final Integer minValue, final Integer maxValue,
       final Integer defaultValue) {
 
-    final NumberQuestion parent = this.questionRepository.save(NumberQuestion.builder()
+    final NumberQuestion result = this.questionRepository.save(NumberQuestion.builder()
         .question(question)
         .minValue(minValue)
         .maxValue(maxValue)
@@ -634,6 +627,7 @@ public class ExampleDataService {
         .optional(true)
         .build());
 
-    return parent;
+    result.setReleaseStatus(ReleaseStatusType.RELEASED);
+    return this.questionRepository.save(result);
   }
 }

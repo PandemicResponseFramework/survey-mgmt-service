@@ -25,6 +25,7 @@ import one.tracking.framework.entity.VerificationState;
 import one.tracking.framework.repo.DeviceTokenRepository;
 import one.tracking.framework.repo.UserRepository;
 import one.tracking.framework.repo.VerificationRepository;
+import one.tracking.framework.service.mail.EmailService;
 import one.tracking.framework.support.JWTHelper;
 import one.tracking.framework.support.ServiceUtility;
 
@@ -47,7 +48,7 @@ public class AuthService {
   private DeviceTokenRepository deviceTokenRepository;
 
   @Autowired
-  private SendGridService emailService;
+  private EmailService emailService;
 
   @Autowired
   private ServiceUtility utility;

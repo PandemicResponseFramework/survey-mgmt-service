@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -46,6 +47,7 @@ import one.tracking.framework.entity.ParticipantImport;
 import one.tracking.framework.entity.ParticipantImportStatus;
 import one.tracking.framework.entity.Verification;
 import one.tracking.framework.entity.VerificationState;
+import one.tracking.framework.service.mail.EmailService;
 import one.tracking.framework.support.ServiceUtility;
 
 /**
@@ -65,7 +67,7 @@ public class ParticipantService {
   private EntityManager entityManager;
 
   @Autowired
-  private SendGridService emailService;
+  private EmailService emailService;
 
   @Autowired
   private ServiceUtility utility;
@@ -309,7 +311,7 @@ public class ParticipantService {
           case SKIPPED:
             entity.setCountSkipped(participantImport.getCountSkipped() + finalCountSkipped + 1);
             break;
-          case SUCCESS: {
+          case PENDING: {
             entity.setCountSkipped(participantImport.getCountSkipped() + finalCountSkipped);
             entity.setCountSuccess(participantImport.getCountSuccess() + 1);
             break;
@@ -393,7 +395,6 @@ public class ParticipantService {
     if (!(verificationOp.isEmpty() || autoUpdateInvitation))
       return InvitationFeedback.SKIPPED;
 
-
     try {
       emailSentSuccessfully = sendRegistrationEmail(email, verificationToken, confirmationToken);
     } catch (final IOException e) {
@@ -430,7 +431,7 @@ public class ParticipantService {
 
     }
 
-    return emailSentSuccessfully ? InvitationFeedback.SUCCESS : InvitationFeedback.FAILED;
+    return emailSentSuccessfully ? InvitationFeedback.PENDING : InvitationFeedback.FAILED;
   }
 
   private String getValidVerificationToken() {
@@ -472,5 +473,18 @@ public class ParticipantService {
     final String message = this.templateEngine.process("registrationTemplate", context);
 
     return this.emailService.sendHTML(email, "Registration", message);
+  }
+
+  /**
+   * @param email
+   */
+  public void deleteParticipant(final String email) {
+    final Query query = this.entityManager.createNamedQuery("Verification.deleteByEmail");
+    query.setParameter(1, email);
+
+    this.transactionTemplate.execute(status -> {
+      query.executeUpdate();
+      return true;
+    });
   }
 }

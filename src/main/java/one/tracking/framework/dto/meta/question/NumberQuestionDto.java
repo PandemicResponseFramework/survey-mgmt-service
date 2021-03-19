@@ -25,7 +25,7 @@ public class NumberQuestionDto extends QuestionDto {
 
   private Integer maxValue;
 
-  private Integer defaultValue;
+  private Integer defaultAnswer;
 
   @Override
   public QuestionType getType() {

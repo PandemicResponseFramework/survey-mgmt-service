@@ -68,7 +68,7 @@ public class ReminderTestConfig implements SchedulingConfigurer {
     }
 
     final List<Survey> surveys =
-        this.surveyRepository.findAllByReleaseStatusAndReminderTypeNotAndIntervalTypeNotOrderByNameIdAscVersionDesc(
+        this.surveyRepository.findByReleaseStatusAndReminderTypeNotAndIntervalTypeNotOrderByNameIdAscVersionDesc(
             ReleaseStatusType.RELEASED, ReminderType.NONE, IntervalType.NONE);
 
     final List<String> nameIds = new ArrayList<>();

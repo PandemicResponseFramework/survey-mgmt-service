@@ -6,6 +6,9 @@ package one.tracking.framework.dto.meta.container;
 import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+import javax.validation.groups.Default;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -21,6 +24,7 @@ import one.tracking.framework.dto.meta.question.ChoiceQuestionDto;
 import one.tracking.framework.dto.meta.question.QuestionDto;
 import one.tracking.framework.dto.meta.question.RangeQuestionDto;
 import one.tracking.framework.dto.meta.question.TextQuestionDto;
+import one.tracking.framework.entity.meta.question.QuestionType;
 
 /**
  * @author Marko Voß
@@ -47,13 +51,18 @@ import one.tracking.framework.dto.meta.question.TextQuestionDto;
     })
 public abstract class ContainerDto {
 
+  @NotNull(groups = {Default.class})
+  private Long id;
+
   @Schema(type = "array", oneOf = {
       BooleanQuestionDto.class,
       ChoiceQuestionDto.class,
       RangeQuestionDto.class,
       TextQuestionDto.class,
       ChecklistQuestionDto.class})
-  @NotEmpty
+  @NotEmpty(groups = {Default.class})
   protected List<@Valid QuestionDto> subQuestions;
 
+  @JsonIgnore
+  public abstract QuestionType getType();
 }

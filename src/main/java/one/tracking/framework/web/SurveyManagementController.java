@@ -9,14 +9,17 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.util.Assert;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,10 +28,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import one.tracking.framework.dto.InvitationFeedbackDto;
+import one.tracking.framework.dto.Mapper;
 import one.tracking.framework.dto.ParticipantDto;
 import one.tracking.framework.dto.ParticipantImportFeedbackDto;
 import one.tracking.framework.dto.ParticipantInvitationDto;
 import one.tracking.framework.dto.TokenResponseDto;
+import one.tracking.framework.dto.meta.SurveyDto;
+import one.tracking.framework.dto.meta.SurveyEditDto;
+import one.tracking.framework.dto.meta.container.ContainerDto;
+import one.tracking.framework.dto.meta.question.QuestionDto;
+import one.tracking.framework.dto.validation.Update;
 import one.tracking.framework.service.ParticipantService;
 import one.tracking.framework.service.SurveyManagementService;
 import springfox.documentation.annotations.ApiIgnore;
@@ -95,6 +104,17 @@ public class SurveyManagementController {
   }
 
   @RequestMapping(
+      method = RequestMethod.DELETE,
+      path = "/participant")
+  public void deleteParticipant(
+      @RequestParam("email")
+      @NotBlank
+      final String email) {
+
+    this.participantService.deleteParticipant(email);
+  }
+
+  @RequestMapping(
       method = RequestMethod.POST,
       path = "/participant/import",
       consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -158,7 +178,6 @@ public class SurveyManagementController {
     Assert.isTrue(startTime.isBefore(endTime), "'from' datetime value must be before 'to' datetime value.");
 
     final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("YYYYMMdd_HHmmss")
-        // .withLocale(Locale.UK)
         .withZone(ZoneOffset.UTC);
 
     final String filename = "export_" + formatter.format(Instant.now()) + ".xlsx";
@@ -179,42 +198,80 @@ public class SurveyManagementController {
   @RequestMapping(
       method = RequestMethod.GET,
       path = "/survey")
-  public void getSurveys(/* TODO */) {
-    throw new UnsupportedOperationException();
+  public List<SurveyDto> getSurveys() {
+
+    return this.surveyManagementService.getCurrentSurveys().stream().map(f -> SurveyDto.builder()
+        .dependsOn(f.getDependsOn())
+        .description(f.getDescription())
+        .id(f.getId())
+        .nameId(f.getNameId())
+        .title(f.getTitle())
+        .version(f.getVersion())
+        .releaseStatus(f.getReleaseStatus())
+        .build())
+        .collect(Collectors.toList());
+  }
+
+  @RequestMapping(
+      method = RequestMethod.GET,
+      path = "/nameid")
+  public List<String> getSurveyNameIds() {
+
+    return this.surveyManagementService.getSurveyNameIds();
   }
 
   @RequestMapping(
       method = RequestMethod.GET,
       path = "/survey/{surveyId}")
-  public void getSurvey(/* TODO */
+  public SurveyEditDto getSurvey(
       @PathVariable("surveyId")
       final Long surveyId) {
-    throw new UnsupportedOperationException();
+
+    return Mapper.SurveyEdit.map(this.surveyManagementService.getSurvey(surveyId));
   }
 
+  // TODO: Return ID instead
   @RequestMapping(
       method = RequestMethod.POST,
       path = "/survey")
-  public void createSurvey(/* TODO */) {
-    throw new UnsupportedOperationException();
+  public SurveyEditDto createSurvey(
+      @RequestBody
+      @Valid
+      final SurveyEditDto data) {
+
+    return Mapper.SurveyEdit.map(this.surveyManagementService.createSurvey(data));
+  }
+
+  // TODO: Return ID instead
+  @RequestMapping(
+      method = RequestMethod.POST,
+      path = "/survey/{surveyId}/version")
+  public SurveyEditDto createNewSurveyVersion(
+      @PathVariable("surveyId")
+      final Long surveyId) {
+
+    return Mapper.SurveyEdit.map(this.surveyManagementService.createNewSurveyVersion(surveyId));
   }
 
   @RequestMapping(
       method = RequestMethod.POST,
       path = "/survey/{surveyId}")
-  public void updateSurvey(/* TODO */
+  public SurveyEditDto updateSurvey(
       @PathVariable("surveyId")
-      final Long surveyId) {
-    throw new UnsupportedOperationException();
+      final Long surveyId,
+      final SurveyEditDto data) {
+
+    return Mapper.SurveyEdit.map(this.surveyManagementService.updateSurvey(surveyId, data));
   }
 
   @RequestMapping(
       method = RequestMethod.DELETE,
       path = "/survey/{surveyId}")
-  public void deleteSurvey(/* TODO */
+  public void deleteSurvey(
       @PathVariable("surveyId")
       final Long surveyId) {
-    throw new UnsupportedOperationException();
+
+    this.surveyManagementService.deleteContainer(surveyId);
   }
 
   /*
@@ -223,19 +280,8 @@ public class SurveyManagementController {
 
   @RequestMapping(
       method = RequestMethod.GET,
-      path = "/survey/{surveyId}/question")
-  public void getQuestions(
-      @PathVariable("surveyId")
-      final Long surveyId/* TODO */) {
-    throw new UnsupportedOperationException();
-  }
-
-  @RequestMapping(
-      method = RequestMethod.GET,
-      path = "/survey/{surveyId}/question/{questionId}")
+      path = "/question/{questionId}")
   public void getQuestion(/* TODO */
-      @PathVariable("surveyId")
-      final Long surveyId,
       @PathVariable("questionId")
       final Long questionId) {
     throw new UnsupportedOperationException();
@@ -243,97 +289,76 @@ public class SurveyManagementController {
 
   @RequestMapping(
       method = RequestMethod.POST,
-      path = "/survey/{surveyId}/question")
-  public void createQuestion(/* TODO */
-      @PathVariable("surveyId")
-      final Long surveyId) {
-    throw new UnsupportedOperationException();
+      path = "/question/{questionId}/container")
+  public Long createContainer(
+      @PathVariable("questionId")
+      final Long questionId,
+      @RequestBody
+      @Validated(Update.class)
+      final ContainerDto data) {
+
+    return this.surveyManagementService.createContainer(questionId, data).getId();
   }
 
   @RequestMapping(
       method = RequestMethod.POST,
-      path = "/survey/{surveyId}/question/{questionId}")
-  public void updateQuestion(/* TODO */
-      @PathVariable("surveyId")
-      final Long surveyId,
+      path = "/question/{questionId}")
+  public void updateQuestion(
       @PathVariable("questionId")
-      final Long questionId) {
-    throw new UnsupportedOperationException();
+      final Long questionId,
+      @RequestBody
+      @Validated(Update.class)
+      final QuestionDto data) {
+
+    this.surveyManagementService.updateQuestion(questionId, data);
   }
 
   @RequestMapping(
       method = RequestMethod.DELETE,
-      path = "/survey/{surveyId}/question/{questionId}")
-  public void deleteQuestion(/* TODO */
-      @PathVariable("surveyId")
-      final Long surveyId,
+      path = "/question/{questionId}")
+  public void deleteQuestion(
       @PathVariable("questionId")
       final Long questionId) {
-    throw new UnsupportedOperationException();
+
+    this.surveyManagementService.deleteQuestion(questionId);
   }
 
   /*
-   * Choice Answers (Bad Request if question is not of type CHOICE)
+   * Container
    */
 
   @RequestMapping(
-      method = RequestMethod.GET,
-      path = "/survey/{surveyId}/question/{questionId}/answer")
-  public void getAnswers(/* TODO */) {
-    throw new UnsupportedOperationException();
-  }
+      method = RequestMethod.POST,
+      path = "/container/{containerId}")
+  public void updateContainer(
+      @PathVariable("containerId")
+      final Long containerId,
+      @RequestBody
+      @Validated(Update.class)
+      final ContainerDto data) {
 
-  @RequestMapping(
-      method = RequestMethod.GET,
-      path = "/survey/{surveyId}/question/{questionId}/answer/{answerId}")
-  public void getAnswer(/* TODO */
-      @PathVariable("surveyId")
-      final Long surveyId,
-      @PathVariable("questionId")
-      final Long questionId,
-      @PathVariable("answerId")
-      final Long answerId) {
-
-    throw new UnsupportedOperationException();
+    this.surveyManagementService.updateContainer(containerId, data);
   }
 
   @RequestMapping(
       method = RequestMethod.POST,
-      path = "/survey/{surveyId}/question/{questionId}/answer")
-  public void createAnswer(/* TODO */
-      @PathVariable("surveyId")
-      final Long surveyId,
-      @PathVariable("questionId")
-      final Long questionId) {
-
-    throw new UnsupportedOperationException();
-  }
-
-  @RequestMapping(
-      method = RequestMethod.POST,
-      path = "/survey/{surveyId}/question/{questionId}/answer/{answerId}")
-  public void updateAnswer(/* TODO */
-      @PathVariable("surveyId")
-      final Long surveyId,
-      @PathVariable("questionId")
-      final Long questionId,
-      @PathVariable("answerId")
-      final Long answerId) {
-
-    throw new UnsupportedOperationException();
+      path = "/container/{containerId}/question")
+  public Long createQuestion(/* TODO */
+      @PathVariable("containerId")
+      final Long containerId,
+      @RequestBody
+      @Validated(Update.class)
+      final QuestionDto data) {
+    return this.surveyManagementService.addQuestion(containerId, data).getId();
   }
 
   @RequestMapping(
       method = RequestMethod.DELETE,
-      path = "/survey/{surveyId}/question/{questionId}/answer/{answerId}")
-  public void deleteAnswer(/* TODO */
-      @PathVariable("surveyId")
-      final Long surveyId,
-      @PathVariable("questionId")
-      final Long questionId,
-      @PathVariable("answerId")
-      final Long answerId) {
+      path = "/container/{containerId}")
+  public void deleteContainer(
+      @PathVariable("containerId")
+      final Long containerId) {
 
-    throw new UnsupportedOperationException();
+    this.surveyManagementService.deleteContainer(containerId);
   }
 }

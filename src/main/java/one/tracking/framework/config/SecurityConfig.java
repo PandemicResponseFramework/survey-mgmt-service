@@ -204,11 +204,16 @@ public class SecurityConfig {
 
       http.cors().and().csrf().disable().authorizeRequests()
           .antMatchers("/manage/**", "/user").hasAnyRole(SecurityConfig.this.roleAdmin)
-          .antMatchers("/oauth2/**").permitAll()
+          .antMatchers("/oauth2/**").permitAll();
+
+      http.authorizeRequests()
+          .antMatchers("/ui").hasAnyRole(SecurityConfig.this.roleAdmin)
           .and()
           .oauth2Login()
           .userInfoEndpoint()
           .oidcUserService(this.oidcUserService);
+
+      http.exceptionHandling().authenticationEntryPoint(new MyAuthenticationEntryPoint("/ui"));
     }
   }
 

@@ -1,12 +1,14 @@
 package one.tracking.framework;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import one.tracking.framework.config.ServicesConfig;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan(basePackageClasses = ServicesConfig.class)
+@EnableAutoConfiguration
 public class SurveyManagementApplication {
 
   public static void main(final String[] args) {

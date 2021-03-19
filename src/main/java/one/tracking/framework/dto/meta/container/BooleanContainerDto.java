@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import one.tracking.framework.entity.meta.question.QuestionType;
 
 /**
  * @author Marko Voß
@@ -26,4 +27,8 @@ public class BooleanContainerDto extends ContainerDto {
   @NotNull
   private Boolean boolDependsOn;
 
+  @Override
+  public QuestionType getType() {
+    return QuestionType.BOOL;
+  }
 }

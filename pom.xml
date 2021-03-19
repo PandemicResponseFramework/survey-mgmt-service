@@ -8,7 +8,7 @@
 		<version>2.2.6.RELEASE</version>
 		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>one.tracking.framework</groupId>
+	<groupId>prf.survey</groupId>
 	<artifactId>survey-mgmt-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Survey Management Service</name>
@@ -26,7 +26,7 @@
 		<profile>
 			<id>mysql</id>
 			<activation>
-				<activeByDefault>true</activeByDefault>
+				<activeByDefault>false</activeByDefault>
 			</activation>
 			<properties>
 				<spring.profile>mysql</spring.profile>
@@ -41,6 +41,9 @@
 		</profile>
 		<profile>
 			<id>h2</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
 			<properties>
 				<spring.profile>h2</spring.profile>
 			</properties>
@@ -111,6 +114,11 @@
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
 
@@ -176,6 +184,10 @@
 				<directory>src/main/resources</directory>
 				<filtering>true</filtering>
 			</resource>
+			<resource>
+				<directory>src/main/unfiltered</directory>
+				<filtering>false</filtering>
+			</resource>
 		</resources>
 		<testResources>
 			<testResource>
@@ -212,9 +224,9 @@
 			</releases>
 		</repository>
 		<repository>
-			<id>com.github.OneTrackingFramework.survey-commons</id>
-			<name>GitHub OneTrackingFramework Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/OneTrackingFramework/survey-commons</url>
+			<id>com.github.PandemicResponseFramework.survey-commons</id>
+			<name>GitHub PandemicResponseFramework Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/PandemicResponseFramework/survey-commons</url>
 		</repository>
 	</repositories>
 
@@ -222,12 +234,12 @@
 		<repository>
 			<id>github</id>
 			<name>GitHub Packages</name>
-			<url>https://maven.pkg.github.com/OneTrackingFramework/survey-mgmt-service</url>
+			<url>https://maven.pkg.github.com/PandemicResponseFramework/survey-mgmt-service</url>
 		</repository>
 		<snapshotRepository>
 			<id>github</id>
 			<name>GitHub Packages</name>
-			<url>https://maven.pkg.github.com/OneTrackingFramework/survey-mgmt-service</url>
+			<url>https://maven.pkg.github.com/PandemicResponseFramework/survey-mgmt-service</url>
 		</snapshotRepository>
 	</distributionManagement>
 

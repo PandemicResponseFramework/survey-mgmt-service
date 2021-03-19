@@ -8,6 +8,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import javax.validation.groups.Default;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
@@ -18,6 +19,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import one.tracking.framework.dto.validation.Update;
+import one.tracking.framework.entity.meta.ReleaseStatusType;
 import one.tracking.framework.entity.meta.question.QuestionType;
 
 /**
@@ -59,19 +62,24 @@ import one.tracking.framework.entity.meta.question.QuestionType;
 })
 public abstract class QuestionDto {
 
-  @NotNull
+  @NotNull(groups = {Default.class})
   private Long id;
 
-  @NotEmpty
-  @Size(max = 256)
+  @NotEmpty(groups = {Default.class, Update.class,})
+  @Size(max = 256, groups = {Default.class, Update.class})
   private String question;
 
-  @NotNull
-  @Min(0)
+  @NotNull(groups = {Default.class, Update.class})
+  @Min(value = 0, groups = {Default.class, Update.class})
   private Integer order;
 
-  @NotNull
+  @NotNull(groups = {Default.class, Update.class})
   private Boolean optional;
+
+  @NotNull(groups = {Default.class})
+  private ReleaseStatusType releaseStatus;
+
+  private Long previousVersionId;
 
   @JsonIgnore
   public List<QuestionDto> getSubQuestions() {

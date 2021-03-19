@@ -7,7 +7,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -86,7 +85,7 @@ public class ReminderConfig implements SchedulingConfigurer {
     }
 
     final List<Survey> surveys =
-        this.surveyRepository.findAllByReleaseStatusAndReminderTypeNotAndIntervalTypeNotOrderByNameIdAscVersionDesc(
+        this.surveyRepository.findByReleaseStatusAndReminderTypeNotAndIntervalTypeNotOrderByNameIdAscVersionDesc(
             ReleaseStatusType.RELEASED, ReminderType.NONE, IntervalType.NONE);
 
     final List<String> nameIds = new ArrayList<>();
@@ -141,16 +140,15 @@ public class ReminderConfig implements SchedulingConfigurer {
       return new Date(start.toInstant().toEpochMilli());
     }
 
-    final int weekStart = start.get(WeekFields.ISO.weekOfWeekBasedYear());
-    final int weekNow = now.get(WeekFields.ISO.weekOfWeekBasedYear());
+    final long intervalLength = intervalType.toChronoUnit().getDuration().toSeconds();
+    final long secondsDelta = (now.toEpochSecond() - start.toEpochSecond());
+    final long diff = intervalLength - secondsDelta % intervalLength;
 
-    final int weekDelta = (int) (Math.floor((weekNow - weekStart) / (double) intervalValue));
+    final ZonedDateTime result = now.plusSeconds(diff)
+        .withMinute(start.getMinute())
+        .withSecond(start.getSecond())
+        .withNano(start.getNano());
 
-    ZonedDateTime startTime = start.plusWeeks(weekDelta * intervalValue);
-
-    if (startTime.isBefore(now))
-      startTime = startTime.plus(intervalValue, intervalType.toChronoUnit());
-
-    return new Date(startTime.toInstant().toEpochMilli());
+    return new Date(result.toInstant().toEpochMilli());
   }
 }

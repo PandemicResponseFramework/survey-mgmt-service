@@ -118,7 +118,7 @@ public class HelperBean {
   public Survey createSimpleSurvey(final String nameId, final boolean withInterval, final Survey dependsOn) {
 
     return this.surveyRepository.save(Survey.builder()
-        .dependsOn(dependsOn)
+        .dependsOn(dependsOn == null ? null : dependsOn.getNameId())
         .questions(Collections.singletonList(createBoolQuestion("Q1", 0)))
         .nameId(nameId)
         .title("TITLE")
@@ -234,7 +234,7 @@ public class HelperBean {
         0, 10, 5));
 
     return this.surveyRepository.save(Survey.builder()
-        .dependsOn(dependsOn)
+        .dependsOn(dependsOn == null ? null : dependsOn.getNameId())
         .questions(questions)
         .nameId(nameId)
         .title("TITLE")
