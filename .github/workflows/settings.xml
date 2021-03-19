@@ -36,7 +36,7 @@
             <password>${env.GITHUB_TOKEN}</password>
         </server>
 		<server>
-          <id>com.github.OneTrackingFramework.survey-commons</id>
+          <id>com.github.PandemicResponseFramework.survey-commons</id>
           <username>${env.GITHUB_ACTOR}</username>
           <password>${env.GITHUB_TOKEN}</password>
         </server>
