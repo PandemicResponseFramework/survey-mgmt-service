@@ -203,17 +203,14 @@ public class SecurityConfig {
     protected void configure(final HttpSecurity http) throws Exception {
 
       http.cors().and().csrf().disable().authorizeRequests()
-          .antMatchers("/manage/**", "/user").hasAnyRole(SecurityConfig.this.roleAdmin)
-          .antMatchers("/oauth2/**").permitAll();
-
-      http.authorizeRequests()
-          .antMatchers("/ui").hasAnyRole(SecurityConfig.this.roleAdmin)
+          .antMatchers("/manage/**", "/user", "/ui").hasAnyRole(SecurityConfig.this.roleAdmin)
+          // .antMatchers("/oauth2/**").permitAll()
           .and()
           .oauth2Login()
           .userInfoEndpoint()
           .oidcUserService(this.oidcUserService);
 
-      http.exceptionHandling().authenticationEntryPoint(new MyAuthenticationEntryPoint("/ui"));
+      // http.exceptionHandling().authenticationEntryPoint(new MyAuthenticationEntryPoint("/ui"));
     }
   }
 
