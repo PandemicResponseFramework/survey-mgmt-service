@@ -73,7 +73,7 @@ public class FirebaseService {
 
     try {
 
-      final FirebaseOptions options = new FirebaseOptions.Builder()
+      final FirebaseOptions options = FirebaseOptions.builder()
           .setCredentials(GoogleCredentials.fromStream(stream))
           .build();
 

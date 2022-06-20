@@ -17,7 +17,6 @@ import javax.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.Authentication;
 import org.springframework.util.Assert;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import io.swagger.v3.oas.annotations.Parameter;
 import one.tracking.framework.dto.InvitationFeedbackDto;
 import one.tracking.framework.dto.Mapper;
 import one.tracking.framework.dto.ParticipantDto;
@@ -40,7 +40,6 @@ import one.tracking.framework.dto.meta.question.QuestionDto;
 import one.tracking.framework.dto.validation.Update;
 import one.tracking.framework.service.ParticipantService;
 import one.tracking.framework.service.SurveyManagementService;
-import springfox.documentation.annotations.ApiIgnore;
 
 /**
  * @author Marko Voß
@@ -55,16 +54,6 @@ public class SurveyManagementController {
 
   @Autowired
   private SurveyManagementService surveyManagementService;
-
-  @RequestMapping(
-      method = RequestMethod.GET,
-      path = "/test")
-  public Authentication testAD(
-      @ApiIgnore
-      final Authentication authentication) {
-
-    return authentication;
-  }
 
   /*
    * Participants
@@ -169,7 +158,7 @@ public class SurveyManagementController {
       final Long from,
       @RequestParam("to")
       final Long to,
-      @ApiIgnore
+      @Parameter(hidden = true)
       final HttpServletResponse response) throws IOException {
 
     final LocalDateTime startTime = Instant.ofEpochMilli(from).atOffset(ZoneOffset.UTC).toLocalDateTime();
@@ -208,6 +197,7 @@ public class SurveyManagementController {
         .title(f.getTitle())
         .version(f.getVersion())
         .releaseStatus(f.getReleaseStatus())
+        .intervalStart(f.getIntervalStart())
         .build())
         .collect(Collectors.toList());
   }
@@ -262,6 +252,16 @@ public class SurveyManagementController {
       final SurveyEditDto data) {
 
     return Mapper.SurveyEdit.map(this.surveyManagementService.updateSurvey(surveyId, data));
+  }
+
+  @RequestMapping(
+      method = RequestMethod.POST,
+      path = "/survey/{surveyId}/release")
+  public void releaseSurvey(
+      @PathVariable("surveyId")
+      final Long surveyId) {
+
+    this.surveyManagementService.releaseSurvey(surveyId);
   }
 
   @RequestMapping(

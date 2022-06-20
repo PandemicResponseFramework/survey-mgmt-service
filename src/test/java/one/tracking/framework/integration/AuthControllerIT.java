@@ -7,7 +7,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
@@ -15,9 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -29,7 +28,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -55,12 +53,9 @@ import one.tracking.framework.support.ServiceUtility;
  *
  */
 @AutoConfigureMockMvc
-@TestPropertySource(locations = "classpath:application-it.properties")
 @Import(ITConfiguration.class)
-@RunWith(SpringRunner.class)
-// @SpringBootTest(classes = SurveyApplication.class, webEnvironment =
-// SpringBootTest.WebEnvironment.DEFINED_PORT)
 @SpringBootTest(classes = SurveyManagementApplication.class)
+@TestPropertySource(locations = "classpath:application-it.properties")
 @DirtiesContext
 @ActiveProfiles("dev")
 public class AuthControllerIT {
@@ -99,7 +94,7 @@ public class AuthControllerIT {
   @Autowired
   private JWTHelper jwtHelper;
 
-  @Before
+  @BeforeEach
   public void before() throws IOException {
     Mockito.when(this.sendGridService.sendHTML(anyString(), anyString(), anyString())).thenReturn(true);
     Mockito.when(this.sendGridService.sendText(anyString(), anyString(), anyString())).thenReturn(true);

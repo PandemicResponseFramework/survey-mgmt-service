@@ -13,7 +13,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.swagger.annotations.ApiModel;
 import io.swagger.v3.oas.annotations.media.DiscriminatorMapping;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -43,23 +42,24 @@ import one.tracking.framework.entity.meta.question.QuestionType;
     @Type(name = "CHECKLIST", value = ChecklistQuestionDto.class),
     @Type(name = "CHECKLIST_ENTRY", value = ChecklistEntryDto.class)
 })
-@ApiModel(discriminator = "type", subTypes = {
-    BooleanQuestionDto.class,
-    ChoiceQuestionDto.class,
-    RangeQuestionDto.class,
-    TextQuestionDto.class,
-    NumberQuestionDto.class,
-    ChecklistQuestionDto.class,
-    ChecklistEntryDto.class})
-@Schema(discriminatorProperty = "type", discriminatorMapping = {
-    @DiscriminatorMapping(value = "BOOL", schema = BooleanQuestionDto.class),
-    @DiscriminatorMapping(value = "CHOICE", schema = ChoiceQuestionDto.class),
-    @DiscriminatorMapping(value = "RANGE", schema = RangeQuestionDto.class),
-    @DiscriminatorMapping(value = "TEXT", schema = TextQuestionDto.class),
-    @DiscriminatorMapping(value = "NUMBER", schema = NumberQuestionDto.class),
-    @DiscriminatorMapping(value = "CHECKLIST", schema = ChecklistQuestionDto.class),
-    @DiscriminatorMapping(value = "CHECKLIST_ENTRY", schema = ChecklistEntryDto.class)
-})
+@Schema(discriminatorProperty = "type",
+    discriminatorMapping = {
+        @DiscriminatorMapping(value = "BOOL", schema = BooleanQuestionDto.class),
+        @DiscriminatorMapping(value = "CHOICE", schema = ChoiceQuestionDto.class),
+        @DiscriminatorMapping(value = "RANGE", schema = RangeQuestionDto.class),
+        @DiscriminatorMapping(value = "TEXT", schema = TextQuestionDto.class),
+        @DiscriminatorMapping(value = "NUMBER", schema = NumberQuestionDto.class),
+        @DiscriminatorMapping(value = "CHECKLIST", schema = ChecklistQuestionDto.class),
+        @DiscriminatorMapping(value = "CHECKLIST_ENTRY", schema = ChecklistEntryDto.class)
+    },
+    subTypes = {
+        BooleanQuestionDto.class,
+        ChoiceQuestionDto.class,
+        RangeQuestionDto.class,
+        TextQuestionDto.class,
+        NumberQuestionDto.class,
+        ChecklistQuestionDto.class
+    })
 public abstract class QuestionDto {
 
   @NotNull(groups = {Default.class})

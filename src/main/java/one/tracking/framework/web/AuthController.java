@@ -13,11 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Parameter;
 import one.tracking.framework.dto.DeviceTokenDto;
 import one.tracking.framework.dto.TokenResponseDto;
 import one.tracking.framework.dto.VerificationDto;
 import one.tracking.framework.service.AuthService;
-import springfox.documentation.annotations.ApiIgnore;
 
 /**
  * @author Marko Voß
@@ -61,7 +61,7 @@ public class AuthController {
       @RequestBody
       @Valid
       final DeviceTokenDto deviceTokenDto,
-      @ApiIgnore
+      @Parameter(hidden = true)
       final Authentication authentication) {
 
     this.authService.registerDeviceToken(authentication.getName(), deviceTokenDto.getToken());

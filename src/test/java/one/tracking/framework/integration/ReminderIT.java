@@ -3,11 +3,11 @@
  */
 package one.tracking.framework.integration;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -16,9 +16,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.internal.stubbing.answers.AnswersWithDelay;
 import org.mockito.internal.stubbing.answers.Returns;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +28,9 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.SendResponse;
 import one.tracking.framework.SurveyManagementApplication;
 import one.tracking.framework.component.ReminderComponent;
@@ -46,10 +45,9 @@ import one.tracking.framework.service.FirebaseService;
  * @author Marko Voß
  *
  */
-@TestPropertySource(locations = "classpath:application-it.properties")
 @Import(ITConfiguration.class)
-@RunWith(SpringRunner.class)
 @SpringBootTest(classes = SurveyManagementApplication.class)
+@TestPropertySource(locations = "classpath:application-it.properties")
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 @ActiveProfiles("dev")
 public class ReminderIT {
@@ -65,7 +63,7 @@ public class ReminderIT {
 
   private List<DeviceToken> deviceTokens;
 
-  @Before
+  @BeforeEach
   public void before() throws Exception {
     /*
      * Setup DeviceTokens
@@ -90,16 +88,16 @@ public class ReminderIT {
     when(sendResponseSuccess.getMessageId()).thenReturn("Ok");
 
     final FirebaseMessagingException exNotRegistered = mock(FirebaseMessagingException.class);
-    when(exNotRegistered.getErrorCode())
-        .thenReturn(ReminderComponent.ERROR_CODE_REGISTRATION_TOKEN_NOT_REGISTERED);
+    when(exNotRegistered.getMessagingErrorCode())
+        .thenReturn(MessagingErrorCode.UNREGISTERED);
 
     final FirebaseMessagingException exInvalidToken = mock(FirebaseMessagingException.class);
-    when(exInvalidToken.getErrorCode())
-        .thenReturn(ReminderComponent.ERROR_CODE_INVALID_REGISTRATION_TOKEN);
+    when(exInvalidToken.getMessagingErrorCode())
+        .thenReturn(MessagingErrorCode.INVALID_ARGUMENT);
 
     final FirebaseMessagingException exOther = mock(FirebaseMessagingException.class);
-    when(exOther.getErrorCode())
-        .thenReturn("messaging/server-unavailable");
+    when(exOther.getMessagingErrorCode())
+        .thenReturn(MessagingErrorCode.UNAVAILABLE);
 
     final SendResponse sendResponseNotRegistered = mock(SendResponse.class);
     when(sendResponseNotRegistered.isSuccessful()).thenReturn(false);

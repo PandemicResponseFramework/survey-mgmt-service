@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -24,6 +25,7 @@ import one.tracking.framework.domain.ContainerQuestionRelation;
 import one.tracking.framework.domain.CopyResult;
 import one.tracking.framework.domain.Period;
 import one.tracking.framework.domain.SearchResult;
+import one.tracking.framework.domain.TraversalResult;
 import one.tracking.framework.dto.meta.AnswerDto;
 import one.tracking.framework.dto.meta.SurveyEditDto;
 import one.tracking.framework.dto.meta.container.BooleanContainerDto;
@@ -45,7 +47,6 @@ import one.tracking.framework.entity.meta.Survey;
 import one.tracking.framework.entity.meta.container.BooleanContainer;
 import one.tracking.framework.entity.meta.container.ChoiceContainer;
 import one.tracking.framework.entity.meta.container.Container;
-import one.tracking.framework.entity.meta.container.ContainerType;
 import one.tracking.framework.entity.meta.question.BooleanQuestion;
 import one.tracking.framework.entity.meta.question.ChecklistEntry;
 import one.tracking.framework.entity.meta.question.ChecklistQuestion;
@@ -91,6 +92,9 @@ public class SurveyManagementService {
   @PersistenceContext
   private EntityManager entityManager;
 
+  private static final Consumer<Container> NOOP_CONTAINER = foo -> {
+  };
+
   public void exportData(final Instant startTime, final Instant endTime, final OutputStream outStream)
       throws IOException {
 
@@ -109,12 +113,7 @@ public class SurveyManagementService {
       throw new IllegalArgumentException("Specified NameId is already reserved.");
     }
 
-    // Check if dependsOn exists
-    if (data.getDependsOn() != null) {
-      if (!this.surveyRepository.existsByNameId(data.getDependsOn())) {
-        throw new IllegalArgumentException("Specified DependsOn does not exist.");
-      }
-    }
+    validateSurveyData(data);
 
     final Survey survey = Survey.builder()
         .dependsOn(data.getDependsOn())
@@ -140,6 +139,22 @@ public class SurveyManagementService {
     }
 
     return this.surveyRepository.save(survey);
+  }
+
+  private void validateSurveyData(final SurveyEditDto data) {
+
+    if (data.getDependsOn() != null) {
+
+      // Check if the survey depends on itself
+      if (data.getDependsOn().equals(data.getNameId()))
+        throw new IllegalArgumentException("A survey must not depend on itself.");
+
+      // Check if dependsOn exists
+      if (!this.surveyRepository.existsByNameId(data.getDependsOn()))
+        throw new IllegalArgumentException("Specified DependsOn does not exist.");
+
+      // TODO: Check dependency cycle
+    }
   }
 
   public Survey getSurvey(final Long surveyId) {
@@ -192,7 +207,7 @@ public class SurveyManagementService {
       throw new ConflictException("Survey got released already. ID: " + surveyId);
 
     if (!survey.getNameId().equals(data.getNameId()))
-      throw new ConflictException("Changing NameIds after intial setup is currently not possible.");
+      throw new ConflictException("Changing NameIds after intial setup is not allowed.");
 
     // Check if previous release exists. (No change in interval definition allowed)
     final Optional<Survey> previousReleaseOp =
@@ -206,19 +221,21 @@ public class SurveyManagementService {
           !previousRelease.getIntervalType().equals(data.getIntervalType()) ||
           !previousRelease.getIntervalValue().equals(data.getIntervalValue()))
 
-        throw new IllegalArgumentException("Chaning interval defintion of an already active survey is not allowed.");
+        throw new IllegalArgumentException("Changing interval defintion of an already active survey is not allowed.");
     }
+
+    validateSurveyData(data);
 
     return this.surveyRepository.save(survey.toBuilder()
         .description(data.getDescription())
         .intervalStart(data.getIntervalStart())
         .intervalType(data.getIntervalType())
         .intervalValue(data.getIntervalValue())
-        // .nameId(data.getNameId())
         .releaseStatus(ReleaseStatusType.EDIT)
         .reminderType(data.getReminderType())
         .reminderValue(data.getReminderValue())
         .title(data.getTitle())
+        .dependsOn(data.getDependsOn())
         .build());
   }
 
@@ -231,23 +248,38 @@ public class SurveyManagementService {
 
     final Survey survey = surveyOp.get();
 
-    if (survey.getReleaseStatus() == ReleaseStatusType.EDIT)
+    if (survey.getReleaseStatus() == ReleaseStatusType.RELEASED)
       throw new IllegalArgumentException("Specified survey got released already. ID: " + surveyId);
 
     final Period nextPeriod = this.utility.getNextSurveyInstancePeriod(survey, ZonedDateTime.now(ZoneOffset.UTC));
 
-    // TODO Check dependsOn availability before this survey gets released
+    // Check dependsOn availability before this survey gets released
+    if (survey.getDependsOn() != null) {
+      final Optional<Survey> dependency = this.surveyRepository
+          .findTopByNameIdAndReleaseStatusOrderByVersionDesc(survey.getDependsOn(), ReleaseStatusType.RELEASED);
+
+      if (dependency.isEmpty())
+        throw new IllegalArgumentException("The dependency of this survey is not yet available as a release.");
+    }
+
+    // Check validity & update question release state
+    // - No empty containers
+    final TraversalResult result = this.utility.traverseContainer(survey,
+        q -> q.getReleaseStatus() != ReleaseStatusType.RELEASED,
+        q -> q.setReleaseStatus(ReleaseStatusType.RELEASED),
+        c -> c.getQuestions().size() == 0,
+        NOOP_CONTAINER);
+
+    if (result.getConsumedContainers().size() > 0)
+      throw new IllegalArgumentException("Empty containers are not allowed when releasing a survey.");
 
     final Survey storedSurvey = this.surveyRepository.save(survey.toBuilder()
         .releaseStatus(ReleaseStatusType.RELEASED)
-        .intervalStart(nextPeriod.getStart())
+        .intervalStart(survey.getIntervalType() == IntervalType.NONE ? null : nextPeriod.getStart())
         .build());
 
-    final List<Question> updatedQuestions = this.utility.traverseQuestions(survey,
-        p -> p.getReleaseStatus() != ReleaseStatusType.RELEASED,
-        c -> c.setReleaseStatus(ReleaseStatusType.RELEASED));
-
-    this.questionRepository.saveAll(updatedQuestions);
+    if (result.getConsumedQuestions().size() > 0)
+      this.questionRepository.saveAll(result.getConsumedQuestions());
 
     return storedSurvey;
   }
@@ -310,7 +342,7 @@ public class SurveyManagementService {
     final Container container = this.containerRepository.findById(containerId).get();
 
     Container toEdit = null;
-    if (container.getType() == ContainerType.SURVEY) {
+    if (container instanceof Survey) {
 
       final Survey survey = (Survey) container;
       if (survey.getReleaseStatus() == ReleaseStatusType.RELEASED)
@@ -386,7 +418,7 @@ public class SurveyManagementService {
 
     final Container container = this.containerRepository.findById(containerId).get();
 
-    if (container.getType() == ContainerType.SURVEY) {
+    if (container instanceof Survey) {
 
       final Survey survey = (Survey) container;
       if (survey.getReleaseStatus() != ReleaseStatusType.RELEASED)

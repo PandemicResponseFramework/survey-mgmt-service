@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import com.google.firebase.messaging.BatchResponse;
+import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.SendResponse;
 import one.tracking.framework.domain.Period;
 import one.tracking.framework.domain.PushNotificationRequest;
@@ -48,12 +49,6 @@ import one.tracking.framework.support.ServiceUtility;
  */
 @Component
 public class ReminderComponent {
-
-  public static final String ERROR_CODE_REGISTRATION_TOKEN_NOT_REGISTERED =
-      "messaging/registration-token-not-registered";
-
-  public static final String ERROR_CODE_INVALID_REGISTRATION_TOKEN =
-      "messaging/invalid-registration-token";
 
   private static final Logger LOG = LoggerFactory.getLogger(ReminderComponent.class);
 
@@ -426,7 +421,7 @@ public class ReminderComponent {
     final Set<String> userIds = deviceTokensToCheck.stream().map(f -> f.getUser().getId()).collect(Collectors.toSet());
 
     final TypedQuery<String> responseQuery =
-        this.entityManager.createNamedQuery("SurveyResponse.nativeFindBySurveyInstanceIdAndUserIdIn",
+        this.entityManager.createNamedQuery("SurveyResponse.findBySurveyInstanceIdAndUserIdIn",
             String.class);
     responseQuery.setParameter(1, currentInstance.getId());
     responseQuery.setParameter(2, userIds);
@@ -524,16 +519,19 @@ public class ReminderComponent {
 
       if (!response.isSuccessful()) {
 
-        if (ERROR_CODE_INVALID_REGISTRATION_TOKEN.equals(response.getException().getErrorCode())
-            || ERROR_CODE_REGISTRATION_TOKEN_NOT_REGISTERED.equals(response.getException().getErrorCode())) {
+        if (response.getException().getMessagingErrorCode() == MessagingErrorCode.INVALID_ARGUMENT ||
+            response.getException().getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
 
           LOG.debug("{}: Invalid DeviceToken: {}", survey.getNameId(), currentToken.getToken());
           invalidDeviceTokens.add(currentToken);
 
         } else {
 
-          LOG.warn("{}: Sending message to DeviceToken '{}' failed. Error code: {}", survey.getNameId(),
-              currentToken.getToken(), response.getException().getErrorCode());
+          LOG.warn("{}: Sending message to DeviceToken '{}' failed. Error code: {}, M-Error code: {}",
+              survey.getNameId(),
+              currentToken.getToken(),
+              response.getException().getErrorCode(),
+              response.getException().getMessagingErrorCode());
           validDeviceTokens.add(currentToken);
         }
       } else {

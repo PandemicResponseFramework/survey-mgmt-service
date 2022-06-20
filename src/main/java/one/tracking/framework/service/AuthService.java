@@ -166,7 +166,7 @@ public class AuthService {
     final List<DeviceToken> otherUserTokens = this.deviceTokenRepository.findByUserNotAndToken(user, deviceToken);
 
     if (!otherUserTokens.isEmpty())
-      this.deviceTokenRepository.deleteInBatch(otherUserTokens);
+      this.deviceTokenRepository.deleteAllInBatch(otherUserTokens);
 
     this.deviceTokenRepository.save(DeviceToken.builder()
         .user(user)

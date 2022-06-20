@@ -19,6 +19,8 @@ import one.tracking.framework.dto.meta.question.QuestionDto;
 import one.tracking.framework.dto.meta.question.RangeQuestionDto;
 import one.tracking.framework.dto.meta.question.TextQuestionDto;
 import one.tracking.framework.entity.meta.Answer;
+import one.tracking.framework.entity.meta.IntervalType;
+import one.tracking.framework.entity.meta.ReminderType;
 import one.tracking.framework.entity.meta.Survey;
 import one.tracking.framework.entity.meta.container.BooleanContainer;
 import one.tracking.framework.entity.meta.container.ChoiceContainer;
@@ -49,12 +51,13 @@ public final class Mapper {
           .dependsOn(survey.getDependsOn())
           .description(survey.getDescription())
           .id(survey.getId())
-          .intervalEnabled(survey.getIntervalType() != null)
+          .intervalEnabled(survey.getIntervalType() != IntervalType.NONE)
           .intervalStart(survey.getIntervalStart())
           .intervalType(survey.getIntervalType())
+          .intervalValue(survey.getIntervalValue())
           .nameId(survey.getNameId())
           .releaseStatus(survey.getReleaseStatus())
-          .reminderEnabled(survey.getReminderType() != null)
+          .reminderEnabled(survey.getReminderType() != ReminderType.NONE)
           .reminderType(survey.getReminderType())
           .reminderValue(survey.getReminderValue())
           .title(survey.getTitle())

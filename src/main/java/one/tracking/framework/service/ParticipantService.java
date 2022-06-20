@@ -259,6 +259,9 @@ public class ParticipantService {
     }
   }
 
+  /*
+   * FIXME: If all entries are being skipped, there is no update to the DB!!!
+   */
   private void handleSheet(final Sheet sheet, final String userId, final String importId, final int headerIndex) {
 
     final DataFormatter formatter = new DataFormatter();

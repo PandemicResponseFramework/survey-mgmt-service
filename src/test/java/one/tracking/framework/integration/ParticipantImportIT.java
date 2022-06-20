@@ -4,6 +4,7 @@
 package one.tracking.framework.integration;
 
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.blankOrNullString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
@@ -11,7 +12,6 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.oneOf;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -22,9 +22,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.Callable;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.AdditionalMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -38,7 +37,6 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -59,10 +57,9 @@ import one.tracking.framework.service.mail.SendGridService;
  *
  */
 @AutoConfigureMockMvc
-@TestPropertySource(locations = "classpath:application-it.properties")
 @Import(ITConfiguration.class)
-@RunWith(SpringRunner.class)
 @SpringBootTest(classes = SurveyManagementApplication.class)
+@TestPropertySource(locations = "classpath:application-it.properties")
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 @ActiveProfiles("dev")
 @Slf4j
@@ -87,7 +84,7 @@ public class ParticipantImportIT {
   @Autowired
   private ObjectMapper mapper;
 
-  @Before
+  @BeforeEach
   public void before() throws IOException {
     when(this.sendGridService.sendHTML(eq(INVALID_EMAIL), anyString(), anyString())).thenReturn(false);
     when(this.sendGridService.sendHTML(AdditionalMatchers.not(eq(INVALID_EMAIL)), anyString(), anyString()))

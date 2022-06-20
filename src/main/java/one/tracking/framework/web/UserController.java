@@ -8,8 +8,8 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Parameter;
 import one.tracking.framework.dto.UserProfileDto;
-import springfox.documentation.annotations.ApiIgnore;
 
 /**
  * @author Marko Voß
@@ -21,7 +21,7 @@ public class UserController {
 
   @RequestMapping(method = RequestMethod.GET)
   public UserProfileDto getUser(
-      @ApiIgnore
+      @Parameter(hidden = true)
       final Authentication authentication) {
 
     if (authentication.getPrincipal() instanceof OidcUser) {
