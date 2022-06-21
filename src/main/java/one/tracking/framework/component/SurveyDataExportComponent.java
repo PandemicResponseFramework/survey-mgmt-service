@@ -17,7 +17,7 @@ import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +45,7 @@ public class SurveyDataExportComponent {
 
     LOG.debug("Exporting data for interval: {} - {}", startTime, endTime);
 
-    try (final Workbook workbook = new SXSSFWorkbook(1000)) {
+    try (final Workbook workbook = WorkbookFactory.create(true)) {
 
       final CellStyle cellStyleDateTime = workbook.createCellStyle();
       final CreationHelper createHelper = workbook.getCreationHelper();
@@ -53,7 +53,6 @@ public class SurveyDataExportComponent {
 
       exportSurveyResponseData(workbook, startTime, endTime, cellStyleDateTime);
       exportStepCounter(workbook, startTime, endTime, cellStyleDateTime);
-
       workbook.write(outStream);
     }
   }
