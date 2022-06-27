@@ -18,6 +18,9 @@
 		<java.version>11</java.version>
 		<firebase.version>9.0.0</firebase.version>
 		<poi.version>5.2.2</poi.version>
+		<survey-mgmt-web.url>https://github.com/PandemicResponseFramework/survey-mgmt-web</survey-mgmt-web.url>
+		<survey-mgmt-web.branch>build</survey-mgmt-web.branch>
+		<project.build.frontend>${project.build.directory}/frontend</project.build.frontend>
 	</properties>
 
 	<profiles>
@@ -198,6 +201,60 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<plugin>
+				<groupId>com.googlecode.maven-download-plugin</groupId>
+				<artifactId>download-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>GET survey-mgmt-web</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>wget</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<url>${survey-mgmt-web.url}/tarball/${survey-mgmt-web.branch}</url>
+					<unpack>true</unpack>
+					<outputDirectory>${project.build.frontend}</outputDirectory>
+					<outputFileName>download.tar.gz</outputFileName>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>Prepare frontend</id>
+						<phase>generate-resources</phase>
+						<configuration>
+							<target>
+								<path id="extracted">
+									<first>
+										<fileset dir="${project.build.frontend}">
+											<filename regex=".*survey-mgmt-web.*" />
+										</fileset>
+									</first>
+								</path>
+								<pathconvert property="extracted.path" refid="extracted" />
+								<dirname file="${extracted.path}" property="extracted.dir" />
+								<echo message="Extracted folder: ${extracted.dir}" />
+								<copy file="${extracted.dir}/index.html" todir="${project.build.directory}/classes" />
+								<copy todir="${project.build.directory}/classes/static">
+									<fileset dir="${extracted.dir}/">
+										<exclude name="index.html" />
+									</fileset>
+								</copy>
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
@@ -211,7 +268,7 @@
 		</repository>
 		<repository>
 			<id>com.github.PandemicResponseFramework.survey-commons</id>
-			<name>GitHub PandemicResponseFramework Apache Maven Packages</name>
+			<name>GitHub PandemicResponseFramework Survey Commons Package</name>
 			<url>https://maven.pkg.github.com/PandemicResponseFramework/survey-commons</url>
 		</repository>
 	</repositories>
