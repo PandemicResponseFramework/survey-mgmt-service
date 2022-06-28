@@ -259,7 +259,7 @@ public class SurveyManagementService {
           .findTopByNameIdAndReleaseStatusOrderByVersionDesc(survey.getDependsOn(), ReleaseStatusType.RELEASED);
 
       if (dependency.isEmpty())
-        throw new IllegalArgumentException("The dependency of this survey is not yet available as a release.");
+        throw new IllegalArgumentException("The dependency of this survey has not yet been released.");
     }
 
     // Check validity & update question release state
@@ -418,23 +418,44 @@ public class SurveyManagementService {
 
     final Container container = this.containerRepository.findById(containerId).get();
 
-    if (container instanceof Survey) {
+    if (container instanceof Survey)
+      deleteSurvey((Survey) container);
+    else
+      deleteQuestionContainer(container);
+  }
 
-      final Survey survey = (Survey) container;
-      if (survey.getReleaseStatus() != ReleaseStatusType.RELEASED)
-        throw new IllegalArgumentException("Cannot delete a released survey.");
+  private void deleteSurvey(final Survey survey) {
 
-      this.surveyRepository.deleteById(containerId);
+    if (survey.getReleaseStatus() != ReleaseStatusType.EDIT)
+      throw new IllegalArgumentException("Only surveys with release status EDIT can be deleted.");
 
-    } else {
+    /*
+     * If a released version exists already, no dependency check must be executed, since the released
+     * version serves as a fallback.
+     */
+    final Optional<Survey> latestReleaseOp = this.surveyRepository.findTopByNameIdAndReleaseStatusOrderByVersionDesc(
+        survey.getNameId(),
+        ReleaseStatusType.RELEASED);
 
-      if (!container.getQuestions().isEmpty())
-        throw new IllegalArgumentException("Container does own at least one child and cannot be deleted.");
-
-      final Question question = container.getParent();
-      question.clearContainer();
-      this.questionRepository.save(question);
+    if (latestReleaseOp.isPresent())
+      this.surveyRepository.deleteById(survey.getId());
+    else {
+      // Dependency check
+      if (this.surveyRepository.findAllNameIdsByDependsOn(survey.getNameId()).isEmpty())
+        this.surveyRepository.deleteById(survey.getId());
+      else
+        throw new IllegalArgumentException("Cannot delete unreleased survey, on which other surveys depend on.");
     }
+  }
+
+  private void deleteQuestionContainer(final Container container) {
+
+    if (!container.getQuestions().isEmpty())
+      throw new IllegalArgumentException("Container does own at least one child and cannot be deleted.");
+
+    final Question question = container.getParent();
+    question.clearContainer();
+    this.questionRepository.save(question);
   }
 
   private Question createQuestion(final Container parentContainer, final BooleanQuestionDto data) {

@@ -249,6 +249,8 @@ public class SurveyManagementController {
   public SurveyEditDto updateSurvey(
       @PathVariable("surveyId")
       final Long surveyId,
+      @RequestBody
+      @Valid
       final SurveyEditDto data) {
 
     return Mapper.SurveyEdit.map(this.surveyManagementService.updateSurvey(surveyId, data));
