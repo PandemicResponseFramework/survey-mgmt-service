@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.List;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -49,6 +50,7 @@ public class SurveyEditDto {
 
   private boolean intervalEnabled;
 
+  @NotNull
   private IntervalType intervalType;
 
   private Instant intervalStart;
@@ -57,6 +59,7 @@ public class SurveyEditDto {
 
   private boolean reminderEnabled;
 
+  @NotNull
   private ReminderType reminderType;
 
   private Integer reminderValue;

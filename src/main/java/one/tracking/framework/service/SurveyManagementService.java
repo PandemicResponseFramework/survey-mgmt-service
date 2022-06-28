@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -93,9 +92,6 @@ public class SurveyManagementService {
   @PersistenceContext
   private EntityManager entityManager;
 
-  private static final Consumer<Container> NOOP_CONTAINER = foo -> {
-  };
-
   public void exportData(final Instant startTime, final Instant endTime, final OutputStream outStream)
       throws IOException {
 
@@ -120,10 +116,21 @@ public class SurveyManagementService {
       return false;
 
     // Dependency must own a released version
-    if (survey.getDependsOn() != null) {
-      return this.surveyRepository
-          .existsTopByNameIdAndReleaseStatusOrderByVersionDesc(survey.getDependsOn(), ReleaseStatusType.RELEASED);
-    }
+    if (survey.getDependsOn() != null && !this.surveyRepository
+        .existsTopByNameIdAndReleaseStatusOrderByVersionDesc(survey.getDependsOn(), ReleaseStatusType.RELEASED))
+      return false;
+
+    // Check for empty containers (collect empty containers)
+    final TraversalResult result = this.utility.traverseContainer(survey,
+        q -> false, // ignore questions
+        q -> {// do nothing
+        },
+        c -> c.getQuestions().size() == 0,
+        c -> { // do nothing
+        });
+
+    if (result.getConsumedContainers().size() > 0)
+      return false;
 
     return true;
   }
@@ -323,7 +330,8 @@ public class SurveyManagementService {
         q -> q.getReleaseStatus() != ReleaseStatusType.RELEASED,
         q -> q.setReleaseStatus(ReleaseStatusType.RELEASED),
         c -> c.getQuestions().size() == 0,
-        NOOP_CONTAINER);
+        c -> {
+        });
 
     if (result.getConsumedContainers().size() > 0)
       throw new IllegalArgumentException("Empty containers are not allowed when releasing a survey.");
