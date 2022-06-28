@@ -187,17 +187,21 @@ public class SurveyManagementController {
   @RequestMapping(
       method = RequestMethod.GET,
       path = "/survey")
-  public List<SurveyDto> getSurveys() {
+  public List<SurveyDto> getSurveyOverview() {
 
-    return this.surveyManagementService.getCurrentSurveys().stream().map(f -> SurveyDto.builder()
-        .dependsOn(f.getDependsOn())
-        .description(f.getDescription())
-        .id(f.getId())
-        .nameId(f.getNameId())
-        .title(f.getTitle())
-        .version(f.getVersion())
-        .releaseStatus(f.getReleaseStatus())
-        .intervalStart(f.getIntervalStart())
+    return this.surveyManagementService.getSurveyOverview().stream().map(f -> SurveyDto.builder()
+        .dependsOn(f.getSurvey().getDependsOn())
+        .description(f.getSurvey().getDescription())
+        .id(f.getSurvey().getId())
+        .nameId(f.getSurvey().getNameId())
+        .title(f.getSurvey().getTitle())
+        .version(f.getSurvey().getVersion())
+        .releaseStatus(f.getSurvey().getReleaseStatus())
+        .intervalStart(f.getSurvey().getIntervalStart())
+        .isEditable(f.isEditable())
+        .isReleasable(f.isReleasable())
+        .isDeletable(f.isDeletable())
+        .isVersionable(f.isVersionable())
         .build())
         .collect(Collectors.toList());
   }
@@ -220,16 +224,15 @@ public class SurveyManagementController {
     return Mapper.SurveyEdit.map(this.surveyManagementService.getSurvey(surveyId));
   }
 
-  // TODO: Return ID instead
   @RequestMapping(
       method = RequestMethod.POST,
       path = "/survey")
-  public SurveyEditDto createSurvey(
+  public Long createSurvey(
       @RequestBody
       @Valid
       final SurveyEditDto data) {
 
-    return Mapper.SurveyEdit.map(this.surveyManagementService.createSurvey(data));
+    return this.surveyManagementService.createSurvey(data).getId();
   }
 
   // TODO: Return ID instead

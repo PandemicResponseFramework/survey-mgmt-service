@@ -25,6 +25,7 @@ import one.tracking.framework.domain.ContainerQuestionRelation;
 import one.tracking.framework.domain.CopyResult;
 import one.tracking.framework.domain.Period;
 import one.tracking.framework.domain.SearchResult;
+import one.tracking.framework.domain.SurveyOverviewElement;
 import one.tracking.framework.domain.TraversalResult;
 import one.tracking.framework.dto.meta.AnswerDto;
 import one.tracking.framework.dto.meta.SurveyEditDto;
@@ -101,9 +102,63 @@ public class SurveyManagementService {
     this.exportComponent.export(startTime, endTime, outStream);
   }
 
-  public List<Survey> getCurrentSurveys() {
+  public List<SurveyOverviewElement> getSurveyOverview() {
 
-    return this.surveyRepository.findCurrentVersions();
+    return this.surveyRepository.findCurrentVersions().stream().map(survey -> SurveyOverviewElement.builder()
+        .survey(survey)
+        .isEditable(survey.getReleaseStatus() == ReleaseStatusType.EDIT)
+        .isDeletable(isDeletable(survey))
+        .isReleasable(isReleasable(survey))
+        .isVersionable(isVersionable(survey))
+        .build())
+        .collect(Collectors.toList());
+  }
+
+  private boolean isReleasable(final Survey survey) {
+
+    if (survey.getReleaseStatus() != ReleaseStatusType.EDIT)
+      return false;
+
+    // Dependency must own a released version
+    if (survey.getDependsOn() != null) {
+      return this.surveyRepository
+          .existsTopByNameIdAndReleaseStatusOrderByVersionDesc(survey.getDependsOn(), ReleaseStatusType.RELEASED);
+    }
+
+    return true;
+  }
+
+  private boolean isDeletable(final Survey survey) {
+
+    // Thoughts:
+    // A dependsOn B = A(B)
+    // A dependsOn NULL = A()
+    // v(n) = version n
+    // ---
+    // A(B) v1 RELEASED & ACTIVE -> B v(n) RELEASED
+    // A(B) v2 RELEASED & INACTIVE -> B v(n) RELEASED
+    // A() v2 EDIT
+    //
+    // DELETE B v(n+1) -> OK because of existing release of B v(n)
+    // ---
+    // A(B) v1 RELEASED & ACTIVE -> B v(n) RELEASED
+    // A() v2 RELEASED & INACTIVE
+    //
+    // DELETE B v(n+1) -> OK because of existing release of B v(n)
+
+    return survey.getReleaseStatus() == ReleaseStatusType.EDIT
+        && (this.surveyRepository.existsTopByNameIdAndReleaseStatusOrderByVersionDesc(survey.getNameId(),
+            ReleaseStatusType.RELEASED) || !this.surveyRepository.existsAnyNameIdByDependsOn(survey.getNameId()));
+  }
+
+  private boolean isVersionable(final Survey survey) {
+
+    if (survey.getReleaseStatus() != ReleaseStatusType.RELEASED)
+      return false;
+
+    return this.surveyRepository
+        .findTopByNameIdOrderByVersionDesc(survey.getNameId()).get().getId()
+        .equals(survey.getId());
   }
 
   public Survey createSurvey(final SurveyEditDto data) {
@@ -433,15 +488,15 @@ public class SurveyManagementService {
      * If a released version exists already, no dependency check must be executed, since the released
      * version serves as a fallback.
      */
-    final Optional<Survey> latestReleaseOp = this.surveyRepository.findTopByNameIdAndReleaseStatusOrderByVersionDesc(
+    final boolean latestReleaseExists = this.surveyRepository.existsTopByNameIdAndReleaseStatusOrderByVersionDesc(
         survey.getNameId(),
         ReleaseStatusType.RELEASED);
 
-    if (latestReleaseOp.isPresent())
+    if (latestReleaseExists)
       this.surveyRepository.deleteById(survey.getId());
     else {
       // Dependency check
-      if (this.surveyRepository.findAllNameIdsByDependsOn(survey.getNameId()).isEmpty())
+      if (!this.surveyRepository.existsAnyNameIdByDependsOn(survey.getNameId()))
         this.surveyRepository.deleteById(survey.getId());
       else
         throw new IllegalArgumentException("Cannot delete unreleased survey, on which other surveys depend on.");

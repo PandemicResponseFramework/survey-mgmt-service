@@ -57,4 +57,11 @@ public class SurveyDto {
 
   private Instant intervalStart;
 
+  private boolean isEditable;
+
+  private boolean isDeletable;
+
+  private boolean isReleasable;
+
+  private boolean isVersionable;
 }
