@@ -1110,7 +1110,9 @@ public class SurveyManagementService {
         .concernedCopiedQuestion(
             question.getId().equals(concernedQuestionId)
                 ? copy
-                : containerCopy.getConcernedCopiedQuestion())
+                : containerCopy == null
+                    ? null
+                    : containerCopy.getConcernedCopiedQuestion())
         .build();
   }
 
@@ -1225,7 +1227,9 @@ public class SurveyManagementService {
         .concernedCopiedQuestion(
             question.getId().equals(concernedQuestionId)
                 ? copy
-                : containerCopy.getConcernedCopiedQuestion())
+                : containerCopy == null
+                    ? null
+                    : containerCopy.getConcernedCopiedQuestion())
         .build();
   }
 
